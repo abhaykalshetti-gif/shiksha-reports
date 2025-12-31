@@ -79,48 +79,9 @@ export class DatabaseService {
     isArray: boolean,
   ): string | null {
     if (value == null) return null;
-    // If already an array
-    if (Array.isArray(value)) {
-      return isArray
-        ? this.toArrayLiteral(value.map((v) => String(v)))
-        : value.join(',');
-    }
-    let str = String(value).trim();
-    // Remove wrapping quotes if present
-    if (
-      (str.startsWith('"') && str.endsWith('"')) ||
-      (str.startsWith("'") && str.endsWith("'"))
-    ) {
-      str = str.substring(1, str.length - 1);
-    }
-    // If target is array, convert single value or pre-braced string into array literal
-    if (isArray) {
-      if (str.startsWith('{') && str.endsWith('}')) {
-        // Assume already an array literal. Keep as-is.
-        return str;
-      }
-      // Split comma-separated string into array elements, trim and dequote each
-      const parts = str
-        .split(',')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0)
-        .map((s) => {
-          if (
-            (s.startsWith('"') && s.endsWith('"')) ||
-            (s.startsWith("'") && s.endsWith("'"))
-          ) {
-            return s.substring(1, s.length - 1);
-          }
-          return s;
-        });
-      return this.toArrayLiteral(parts.length > 0 ? parts : [str]);
-    }
-    // If not array, and string looks like array literal, unwrap to simple comma string
-    if (str.startsWith('{') && str.endsWith('}')) {
-      const inner = str.substring(1, str.length - 1);
-      return inner.replace(/\"/g, '"');
-    }
-    return str;
+    // Return value as-is, without any transformation
+    // This preserves the original format from the event (e.g., "na", ["item1", "item2"], etc)
+    return String(value);
   }
 
   async saveUserProfileData(data: any) {
@@ -223,9 +184,24 @@ export class DatabaseService {
     const colTypes = await this.loadCohortMemberColumnTypes(effectiveSchema, 'CohortMember', entries.map(([c]) => c));
 
     entries.forEach(([column, value], idx) => {
-      setFragments.push(`"${column}" = $${idx + 1}`);
-      const normalized = this.normalizeValueForColumn(column, value, !!colTypes[column]?.isArray);
-      params.push(normalized);
+      const isArrayColumn = colTypes[column]?.isArray ?? false;
+      
+      if (isArrayColumn) {
+        // For array columns, wrap the value in PostgreSQL array literal format
+        // Store the original value as a single-element array to preserve it exactly as received
+        if (value == null) {
+          setFragments.push(`"${column}" = $${idx + 1}`);
+          params.push(null);
+        } else {
+          setFragments.push(`"${column}" = $${idx + 1}`);
+          // Wrap the value in a single-element array
+          params.push(this.toArrayLiteral([String(value)]));
+        }
+      } else {
+        setFragments.push(`"${column}" = $${idx + 1}`);
+        // Store value as-is for non-array columns
+        params.push(value);
+      }
     });
 
     params.push(cohortMembershipId);
