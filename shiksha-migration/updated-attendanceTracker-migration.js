@@ -29,7 +29,8 @@ async function migrateAttendanceTracker() {
         a."userId",
         a."tenantId",
         a."contextId",
-        a.context
+        a.context,
+        a.absentReason,
       FROM public."Attendance" a
       WHERE a."attendanceDate" IS NOT NULL 
         AND a."userId" IS NOT NULL
@@ -52,12 +53,19 @@ async function migrateAttendanceTracker() {
           userId: r.userId,
           year,
           month,
-          days: {}
+          days: {},
+absentReasons: {}
+
         });
       }
       const g = groups.get(key);
       g.days[dayCol] = r.attendance || null;
     }
+    
+    // absent reason (new)
+if (r.absentReason) {
+  g.absentReasons[`${dayCol}_AbsentReason`] = r.absentReason;
+}
 
     console.log(`[ATND] Groups to upsert: ${groups.size}`);
     if (groups.size === 0 && res.rows.length > 0) {
@@ -90,10 +98,18 @@ async function upsertOne(client, g) {
   // Build dynamic SET for update with provided day columns only
   const setFrags = [];
   const setVals = [];
-  Object.entries(g.days).forEach(([col, val], idx) => {
-    setFrags.push(`"${col}" = $${idx + 1}`);
-    setVals.push(val);
-  });
+ 
+  let idx = 1;
+
+Object.entries(g.days).forEach(([col, val]) => {
+  setFrags.push(`"${col}" = $${idx++}`);
+  setVals.push(val);
+});
+
+Object.entries(g.absentReasons).forEach(([col, val]) => {
+  setFrags.push(`"${col}" = $${idx++}`);
+  setVals.push(val);
+});
 
   if (setFrags.length > 0) {
     const updateSql = `
@@ -114,8 +130,20 @@ async function upsertOne(client, g) {
 
   // Need to insert
   const dayCols = Object.keys(g.days).sort();
-  const cols = ['"TenantID"', '"Context"', '"ContextID"', '"UserID"', '"Year"', '"Month"', ...dayCols.map(c => `"${c}"`)];
-  const vals = [g.tenantId, g.context, g.contextId, g.userId, g.year, g.month, ...dayCols.map(c => g.days[c])];
+const reasonCols = Object.keys(g.absentReasons).sort();
+
+const cols = [
+  '"TenantID"', '"Context"', '"ContextID"', '"UserID"', '"Year"', '"Month"',
+  ...dayCols.map(c => `"${c}"`),
+  ...reasonCols.map(c => `"${c}"`)
+];
+
+const vals = [
+  g.tenantId, g.context, g.contextId, g.userId, g.year, g.month,
+  ...dayCols.map(c => g.days[c]),
+  ...reasonCols.map(c => g.absentReasons[c])
+];
+
   const placeholders = vals.map((_, i) => `$${i + 1}`);
 
   const insertSql = `

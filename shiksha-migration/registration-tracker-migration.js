@@ -19,6 +19,7 @@ async function migrateRegistrationTracker() {
     console.log('[REG TRACKER] Connected to destination database');
 
     // Join UserTenantMapping with UserRolesMapping to get complete registration data
+    
     const query = `
       SELECT 
         utm."userId",

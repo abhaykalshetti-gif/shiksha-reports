@@ -275,4 +275,8 @@ export class User {
   @Column({ name: 'UserLastLogin', type: "timestamptz", nullable: true })
   userLastLogin: Date | null; // Timestamp for last login
 
+  // additional entities for user added by abhay
+
+  
+
 }

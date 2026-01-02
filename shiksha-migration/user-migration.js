@@ -192,7 +192,7 @@ async function processCoreUser(destClient, user) {
         "UserEnrollmentNumber" = EXCLUDED."UserEnrollmentNumber"
       RETURNING "UserID"
     `;
-    
+      
     // Map source fields to destination fields
     const fullName = `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`.trim() || user.name;
     

@@ -8,6 +8,7 @@ import {
   validateDate,
   ValidationError,
 } from '../types';
+import { AttendanceTracker } from 'src/entities/attendance-tracker.entity';
 
 @Injectable()
 export class AttendanceHandler {
@@ -15,36 +16,29 @@ export class AttendanceHandler {
     private readonly dbService: DatabaseService,
     private transformService: TransformService,
   ) {}
+async handleAttendanceUpsert(data: AttendanceEventData): Promise<any> {
+  try {
+    validateString(data.userId, 'userId');
+    validateString(data.tenantId, 'tenantId');
+    validateDate(data.attendanceDate, 'attendanceDate');
+    validateString(data.attendance, 'attendance');
 
-  async handleAttendanceUpsert(data: AttendanceEventData): Promise<any> {
-    try {
-      // Validate required fields
-      validateString(data.userId, 'userId');
-      validateString(data.tenantId, 'tenantId');
-      validateString(data.attendanceDate, 'attendanceDate');
-      validateString(data.attendance, 'attendance');
-      validateDate(data.attendanceDate, 'attendanceDate');
+    // ✅ CORRECT: destructure
+    const { attendanceData, dayColumn } =
+      await this.transformService.transformAttendanceData(data);
 
-      // Use new AttendanceTracker transformation
-      const { attendanceData, dayColumn, attendanceValue } =
-        await this.transformService.transformAttendanceData(data);
-      return await this.dbService.upsertAttendanceTracker(
-        attendanceData,
-        dayColumn,
-        attendanceValue,
-      );
-    } catch (error) {
-      if (error instanceof ValidationError) {
-        console.error(
-          'Validation failed in handleAttendanceUpsert:',
-          error.message,
-        );
-        throw new Error(`Validation failed: ${error.message}`);
-      }
-      console.error('Error handling attendance upsert:', error);
-      throw error;
+    // ✅ Pass correct types
+    return await this.dbService.upsertAttendanceTracker(
+      attendanceData,
+      dayColumn,
+    );
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      throw new Error(`Validation failed: ${error.message}`);
     }
+    throw error;
   }
+}
 
   async handleAttendanceDelete(data: {
     userId: string;

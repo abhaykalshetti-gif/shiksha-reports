@@ -17,6 +17,8 @@ export class UserHandler {
   ) {}
 
   async handleUserUpsert(data: UserEventData) {
+    // console.log(data);
+    
     try {
       // Validate required fields
       validateString(data.userId, 'userId');

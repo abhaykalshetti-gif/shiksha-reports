@@ -334,58 +334,60 @@ export class DatabaseService {
       where: { cohortId },
     });
   }
+async upsertAttendanceTracker(
+  attendanceData: Partial<AttendanceTracker>,
+  dayColumn: keyof AttendanceTracker,
+) {
+  try {
+    // attendanceData already contains the JSON for the day column
+    // Example:
+    // {
+    //   tenantId,
+    //   userId,
+    //   year,
+    //   month,
+    //   day07: { attendance: 'P', scope: 'GPS', ... }
+    // }
 
-  async upsertAttendanceTracker(
-    attendanceData: Partial<AttendanceTracker>,
-    dayColumn: string,
-    attendanceValue: string,
-  ) {
-    try {
-      // Use database-level upsert with ON CONFLICT to avoid race conditions
-      const baseRecord = {
-        ...attendanceData,
-        [dayColumn]: attendanceValue,
-      };
+    const result = await this.attendanceTrackerRepo
+      .createQueryBuilder()
+      .insert()
+      .into(AttendanceTracker)
+      .values(attendanceData)
+      .orUpdate(
+        [dayColumn as string],
+        ['tenantId', 'userId', 'year', 'month', 'contextId'],
+      )
+      .execute();
 
-      // Try to insert first, if conflict occurs, update
-      const result = await this.attendanceTrackerRepo
-        .createQueryBuilder()
-        .insert()
-        .into(AttendanceTracker)
-        .values(baseRecord)
-        .orUpdate(
-          [dayColumn],
-          ['tenantId', 'userId', 'year', 'month', 'contextId'],
-        )
-        .execute();
+    return result;
+  } catch (error) {
+    // 🔁 Fallback if UPSERT not supported
+    const existingRecord = await this.attendanceTrackerRepo.findOne({
+      where: {
+        tenantId: attendanceData.tenantId,
+        userId: attendanceData.userId,
+        year: attendanceData.year,
+        month: attendanceData.month,
+        ...(attendanceData.contextId && {
+          contextId: attendanceData.contextId,
+        }),
+      },
+    });
 
-      return result;
-    } catch (error) {
-      // Fallback to the original method if the database doesn't support UPSERT
-      const existingRecord = await this.attendanceTrackerRepo.findOne({
-        where: {
-          tenantId: attendanceData.tenantId,
-          userId: attendanceData.userId,
-          year: attendanceData.year,
-          month: attendanceData.month,
-          ...(attendanceData.contextId && {
-            contextId: attendanceData.contextId,
-          }),
-        },
-      });
-
-      if (existingRecord) {
-        const updateData = { [dayColumn]: attendanceValue };
-        return this.attendanceTrackerRepo.update(
-          existingRecord.atndId,
-          updateData,
-        );
-      } else {
-        const newRecord = { ...attendanceData, [dayColumn]: attendanceValue };
-        return this.attendanceTrackerRepo.save(newRecord);
-      }
+    if (existingRecord) {
+      return this.attendanceTrackerRepo.update(
+        existingRecord.atndId,
+        {
+          [dayColumn]: attendanceData[dayColumn],
+        } as Partial<AttendanceTracker>,
+      );
     }
+
+    return this.attendanceTrackerRepo.save(attendanceData);
   }
+}
+
 
   async findAttendanceTracker(
     tenantId: string,

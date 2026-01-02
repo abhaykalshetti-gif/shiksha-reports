@@ -27,10 +27,13 @@ async function getTenantIdForUser(sourceClient, userId) {
       'SELECT "tenantId" FROM public.usertenantmapping WHERE "userId" = $1 LIMIT 1',
       'SELECT "tenantId" FROM public."userTenantMapping" WHERE "userId" = $1 LIMIT 1'
     ];
-    
+
     for (const query of possibleQueries) {
       try {
         const res = await sourceClient.query(query, [userId]);
+
+        console.log("hello");
+        
         if (res.rows.length > 0) {
           const tenantId = res.rows[0].tenantId;
           console.log(`[ASSESSMENT TRACKER] Found tenantId: ${tenantId} for user: ${userId} using query: ${query}`);
@@ -38,7 +41,6 @@ async function getTenantIdForUser(sourceClient, userId) {
           return tenantId;
         }
       } catch (queryError) {
-        // Try next query variation
         continue;
       }
     }
@@ -86,7 +88,6 @@ async function getAssessmentData(assessmentId) {
         },
       },
     );
-
     const questionSet = apiResponse.data.result?.QuestionSet?.[0];
     const assessmentName = questionSet?.name || 'Unknown Assessment';
     const assessmentType = questionSet?.assessmentType || 'Assessment';
@@ -114,8 +115,8 @@ async function getAssessmentData(assessmentId) {
 
 async function migrateAssessmentTracker() {
   console.log('=== STARTING ASSESSMENT TRACKER MIGRATION ===');
-  // const sourceClient = new Client(dbConfig.source);
-  // const destClient = new Client(dbConfig.destination);
+   const sourceClient2 = new Client(dbConfig.source);
+  const destClient2 = new Client(dbConfig.destination);
   const sourceClient = new Client(dbConfig.assessment_source); // Using same source as assessment
   const destClient = new Client(dbConfig.assessment_destination); // Using same destination as assessment
 
@@ -133,12 +134,16 @@ async function migrateAssessmentTracker() {
         "contentId",
         "assessmentSummary",
         "timeSpent",
-        "attemptId"
+        "attemptId",
+        "evaluatedBy",
+        "attemptId",
+        "createdOn",
+        "updatedOn"
       FROM public.assessment_tracking
-      WHERE DATE("createdOn") = '2025-09-29'
+      
     `);
-    console.log(`[ASSESSMENT TRACKER] Found ${assessmentsRes.rows.length} assessment rows.`);
-
+    console.log(`Found ${assessmentsRes.rows.length} rows`);
+    
     for (const row of assessmentsRes.rows) {
       await upsertOne(sourceClient, destClient, row);
       console.log(upsertOne);
@@ -146,8 +151,7 @@ async function migrateAssessmentTracker() {
       console.log('[ASSESSMENT TRACKER] 🛑 Stopping after one record for testing');
     //   break;
     }
-
-    console.log('[ASSESSMENT TRACKER] Migration completed successfully');
+     console.log('[ASSESSMENT TRACKER] Migration completed successfully');
   } catch (err) {
     console.error('[ASSESSMENT TRACKER] Critical error:', err);
   } finally {
@@ -169,10 +173,23 @@ async function migrateAssessmentTracker() {
   const assessmentSummaryText =
     a.assessmentSummary != null ? JSON.stringify(a.assessmentSummary) : null;
   const attemptId = a.attemptId || null;
-
+const createdOn= a.createdOn;
+const updatedOn= a.updatedOn;
+   const sourceClient2 = new Client(dbConfig.source);
+  const destClient2 = new Client(dbConfig.destination);
   // Resolve TenantID from usertenantmapping
-  let tenantId = await getTenantIdForUser(sourceClient, userId);
-  
+   var tenantId='';
+  try{
+     await sourceClient2.connect();
+    console.log('[ASSESSMENT TRACKER] Connected to source database');
+    await destClient2.connect();
+    console.log('[ASSESSMENT TRACKER] Connected to destination database');
+
+      var tenantId = await getTenantIdForUser(sourceClient2, userId);
+  }catch(err){
+
+  }
+console.log(tenantId);
   if (!tenantId) {
     console.warn(`[ASSESSMENT TRACKER] No tenantId found for user ${userId}, using fallback`);
     tenantId = '10a9f829-3652-47d0-b17b-68c4428f9f89'; // Fallback only if no tenantId exists
@@ -182,12 +199,14 @@ async function migrateAssessmentTracker() {
   
   // CourseID can be stored as-is (do_ identifier or UUID)
   const courseId = courseIdRaw;
-  
+  console.log("course data ", courseIdRaw);
   // Fetch assessment data (name and type) from API using contentId
   const assessmentData = await getAssessmentData(contentIdRaw);
+  console.log("Assessment data ",assessmentData);
+  
   const assessmentName = assessmentData.name;
   const assessmentType = assessmentData.type;
-  
+
   console.log(`[ASSESSMENT TRACKER] Using assessmentType from API: ${assessmentType} (not evaluatedBy: ${a.evaluatedBy})`);
 
   // Upsert into destination
@@ -195,9 +214,9 @@ async function migrateAssessmentTracker() {
     INSERT INTO public."AssessmentTracker" (
       "AssesTrackingID", "AssessmentID", "CourseID", "UserID", "TenantID",
       "TotalMaxScore", "TotalScore", "TimeSpent", "AssessmentSummary",
-      "AttemptID", "AssessmentType", "AssessmentName"
+      "AttemptID", "AssessmentType", "AssessmentName", "evaluatedBy", "createdAt", "updatedAt"
     )
-    VALUES ($1, gen_random_uuid(), $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    VALUES ($1, gen_random_uuid(), $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
     ON CONFLICT ("AssesTrackingID")
     DO UPDATE SET
       "CourseID" = EXCLUDED."CourseID",
@@ -209,7 +228,10 @@ async function migrateAssessmentTracker() {
       "AssessmentSummary" = EXCLUDED."AssessmentSummary",
       "AttemptID" = EXCLUDED."AttemptID",
       "AssessmentType" = EXCLUDED."AssessmentType",
-      "AssessmentName" = EXCLUDED."AssessmentName"
+      "AssessmentName" = EXCLUDED."AssessmentName",
+      "evaluatedBy"= EXCLUDED."evaluatedBy",
+      "createdBy"= EXCLUDED."createdByBy",
+      "updatdedBy"= EXCLUDED."updatdedBy",
   `;
 
   const params = [
@@ -223,15 +245,19 @@ async function migrateAssessmentTracker() {
     assessmentSummaryText,
     attemptId,
     assessmentType,
-    assessmentName
+    assessmentName,
+    evaluatedBy,
+    createdOn,
+    updatedOn
   ];
 
-  try {
-    await destClient.query(upsertSql, params);
-    console.log('[ASSESSMENT TRACKER] Upserted', assesTrackingId);
-  } catch (e) {
-    console.error('[ASSESSMENT TRACKER] Upsert error for', assesTrackingId, e.message);
-  }
+
+//   try {
+//     await destClient.query(upsertSql, params);
+//     console.log('[ASSESSMENT TRACKER] Upserted', assesTrackingId);
+//   } catch (e) {
+//     console.error('[ASSESSMENT TRACKER] Upsert error for', assesTrackingId, e.message);
+//   }
 }
 
 if (require.main === module) {

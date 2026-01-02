@@ -115,7 +115,6 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
       }: EachMessagePayload) => {
         try {
           const value = message.value?.toString();
-
           if (!value) {
             this.logger.warn('Received empty Kafka message');
             return;

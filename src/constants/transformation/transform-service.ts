@@ -13,7 +13,7 @@ import {
 import { Cohort } from 'src/entities/cohort.entity';
 import { DatabaseService } from 'src/services/database.service';
 
-import { AttendanceTracker } from 'src/entities/attendance-tracker.entity';
+import { AttendanceDay, AttendanceTracker } from 'src/entities/attendance-tracker.entity';
 import { AssessmentTracker } from 'src/entities/assessment-tracker.entity';
 import { CourseTracker } from 'src/entities/course-tracker.entity';
 import { ContentTracker } from 'src/entities/content-tracker.entity';
@@ -28,6 +28,8 @@ export class TransformService {
   constructor(private readonly dbService: DatabaseService) {}
 
   async transformUserData(data: UserEventData) {
+  console.log(data);
+  
     try {
       // const tenant = data.tenantData?.[0] ?? {}; // Commented out as it's not used
 
@@ -69,7 +71,6 @@ export class TransformService {
           return null;
         }
         const field = data?.customFields.find((f: any) => f?.fieldId === fieldId);
-
         if (
           !field ||
           !field.selectedValues ||
@@ -112,12 +113,13 @@ export class TransformService {
         userId: data.userId,
         username: data.username,
         fullName:
-          `${data.firstName || ''} ${data.middleName ? data.middleName + ' ' : ''}${data.lastName || ''}`.trim(),
+        `${data.firstName || ''} ${data.middleName ? data.middleName + ' ' : ''}${data.lastName || ''}`.trim(),
         email: data.email,
         mobile: data.mobile?.toString(),
         dob: data.dob,
         gender: data.gender,
         status: convertStatusToBoolean(data.status),
+        
         createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
         updatedAt: data.updatedAt ? new Date(data.updatedAt) : undefined,
 
@@ -135,13 +137,6 @@ export class TransformService {
         userGuardianName: extractCustomField('NAME_OF_GUARDIAN'),
         userGuardianRelation: extractCustomField('RELATION_WITH_GUARDIAN'),
         userParentPhone: extractCustomField('PARENT_GUARDIAN_PHONE_NO'),
-        userClass: extractCustomField(
-          'HIGHEST_EDCATIONAL_QUALIFICATION_OR_LAST_PASSED_GRADE',
-        ),
-        userMaritalStatus: extractCustomField('MARITAL_STATUS'),
-        userWhatDoYouWantToBecome: extractCustomField(
-          'WHAT_DO_YOU_WANT_TO_BECOME',
-        ),
         userDropOutReason: extractCustomField(
           'REASON_FOR_DROP_OUT_FROM_SCHOOL',
         ),
@@ -168,6 +163,37 @@ export class TransformService {
         jobFamily: extractCustomField('JOB_FAMILY'),
         psu: extractCustomField('PSU'),
         groupMembership: extractCustomField('EMP_GROUP'),
+
+
+        // NEW FIELDS ADDED by ABHAY
+        userSubjectTaught: extractCustomField('USER_SUBJECT_TAUGHT'),
+        userMaritalStatus: extractCustomField('USER_MARITAL_STATUS'),
+        userGrade: extractCustomField('USER_GRADE'),
+        userDesignation: extractCustomField('USER_DESIGINATION'),
+        userTrainingCheck: convertToBoolean(extractCustomField('USER_TRAINING_CHECK')),
+        userMainSubject: extractCustomField('USER_MAIN_SUBJECT'),
+        userMedium: extractCustomField('USER_MEDIUM'),
+        userBoard: extractCustomField('USER_BOARD'),
+        userNumOfChildrenWorkingWith: extractCustomField('USER_NUMBER_OF_CHILDRENS_WORKING_WITH'),
+        userPhoneType: extractCustomField('USER_PHONE_TYPE'),
+        userCustomField: extractCustomField('USER_CUSTOM_FIELD'),
+        userLastLogin: new Date(extractCustomField('USER_LAST_LOGIN')),
+        userAccessToWhatsApp: extractCustomField('USER_ACCESS_TO_WHATSAPP'),
+        userProgram: extractCustomField('USER_PROGRAM'),
+        userDateOfJoining: extractCustomField('USER_DATE_OF_JOINING'),
+        userTeacherId: extractCustomField('USER_TEACHER_ID'),
+        userOldTeacherId: extractCustomField('USER_OLD_TEACHER_ID'),
+        userCERFLevel: extractCustomField('USER_CERF_LEVEL'),
+        userSubPrograms: extractCustomField('USER_SUBPROGRAMS'),
+        userRole: extractCustomField('USER_ROLE'),
+        userClusterId : extractCustomField('USER_CLUSTER_ID'),
+        userSupervisors: extractCustomField('USER_SUPERVISORS'),
+        userDateOfLeaving: extractCustomField('USER_DATE_OF_LEAVING'),
+        userReasonForLeaving: extractCustomField('USER_REASON_FOR_LEAVING'),
+        userDepartment: extractCustomField('USER_DEPARTMENT'),
+createdBy: extractCustomField('CREATED_BY'),
+updatedBy:extractCustomField('UPDATED_BY'),
+
       };
 
       return transformedData;
@@ -353,40 +379,51 @@ export class TransformService {
     return data;
   }
 
-  async transformAttendanceData(data: AttendanceEventData): Promise<{
-    attendanceData: Partial<AttendanceTracker>;
-    dayColumn: string;
-    attendanceValue: string;
-  }> {
-    try {
-      // Parse the attendance date
-      const attendanceDate = new Date(data.attendanceDate);
-      const year = attendanceDate.getFullYear();
-      const month = attendanceDate.getMonth() + 1; // getMonth() returns 0-11
-      const day = attendanceDate.getDate();
+async transformAttendanceData(data: AttendanceEventData): Promise<{attendanceData: Partial<AttendanceTracker>;
+  dayColumn: keyof AttendanceTracker;
+}> {
+  try {
+    const attendanceDate = new Date(data.attendanceDate);
+    const year = attendanceDate.getFullYear();
+    const month = attendanceDate.getMonth() + 1;
+    const day = attendanceDate.getDate();
 
-      // Format day as two-digit string for column mapping
-      const dayColumn = `day${day.toString().padStart(2, '0')}`;
+    const dayColumn = `day${day.toString().padStart(2, '0')}` as keyof AttendanceTracker;
 
-      const transformedData: Partial<AttendanceTracker> = {
-        tenantId: data.tenantId,
-        context: data.context,
-        contextId: data.contextId,
-        userId: data.userId,
-        year: year,
-        month: month,
-      };
+    const dayAttendance: AttendanceDay = {
+      scope: data.scope,
+      remark: data.remark,
+      lateMark: data.lateMark,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      attendance: data.attendance,
+      absentReason: data.absentReason,
+      validLocation: data.validLocation,
+      ...data.metaData
+    };
 
-      return {
-        attendanceData: transformedData,
-        dayColumn: dayColumn,
-        attendanceValue: data.attendance,
-      };
-    } catch (error) {
-      console.error('Error transforming attendance data:', error);
-      throw error;
-    }
+    const transformedData: Partial<AttendanceTracker> = {
+      tenantId: data.tenantId,
+      context: data.context,
+      contextId: data.contextId,
+      userId: data.userId,
+      year,
+      month,
+
+      [dayColumn]: dayAttendance,
+    };
+
+    return {
+      attendanceData: transformedData,
+      dayColumn,
+    };
+  } catch (error) {
+    console.error('Error transforming attendance data:', error);
+    throw error;
   }
+}
+
+  
 
   // Keep the old method for backward compatibility if needed
   async transformDailyAttendanceData(data: AttendanceEventData) {
