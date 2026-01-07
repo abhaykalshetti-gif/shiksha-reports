@@ -1,5 +1,17 @@
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
+export interface AttendanceDay {
+  scope?: string;
+  remark?: string;
+  lateMark?: string;
+  latitude?: string;
+  longitude?: string;
+  attendance?: string;
+  absentReason?: string;
+  validLocation?: boolean;
+}
+
+
 @Entity({ name: 'AttendanceTracker' })
 export class AttendanceTracker {
   @PrimaryGeneratedColumn({ name: 'ATNDID' })
@@ -23,97 +35,98 @@ export class AttendanceTracker {
   @Column({ name: 'Month', type: 'int4', nullable: false })
   month: number;
 
-  // Day columns 01-31
-  @Column({ name: '01', type: 'text', nullable: true })
-  day01?: string;
 
-  @Column({ name: '02', type: 'text', nullable: true })
-  day02?: string;
+  // Day columns 01–31 as JSONB
+  @Column({ name: '01', type: 'jsonb', nullable: true })
+  day01?: AttendanceDay;
 
-  @Column({ name: '03', type: 'text', nullable: true })
-  day03?: string;
+  @Column({ name: '02', type: 'jsonb', nullable: true })
+  day02?: AttendanceDay;
 
-  @Column({ name: '04', type: 'text', nullable: true })
-  day04?: string;
+  @Column({ name: '03', type: 'jsonb', nullable: true })
+  day03?: AttendanceDay;
 
-  @Column({ name: '05', type: 'text', nullable: true })
-  day05?: string;
+  @Column({ name: '04', type: 'jsonb', nullable: true })
+  day04?: AttendanceDay;
 
-  @Column({ name: '06', type: 'text', nullable: true })
-  day06?: string;
+  @Column({ name: '05', type: 'jsonb', nullable: true })
+  day05?: AttendanceDay;
 
-  @Column({ name: '07', type: 'text', nullable: true })
-  day07?: string;
+  @Column({ name: '06', type: 'jsonb', nullable: true })
+  day06?: AttendanceDay;
 
-  @Column({ name: '08', type: 'text', nullable: true })
-  day08?: string;
+  @Column({ name: '07', type: 'jsonb', nullable: true })
+  day07?: AttendanceDay;
 
-  @Column({ name: '09', type: 'text', nullable: true })
-  day09?: string;
+  @Column({ name: '08', type: 'jsonb', nullable: true })
+  day08?: AttendanceDay;
 
-  @Column({ name: '10', type: 'text', nullable: true })
-  day10?: string;
+  @Column({ name: '09', type: 'jsonb', nullable: true })
+  day09?: AttendanceDay;
 
-  @Column({ name: '11', type: 'text', nullable: true })
-  day11?: string;
+  @Column({ name: '10', type: 'jsonb', nullable: true })
+  day10?: AttendanceDay;
 
-  @Column({ name: '12', type: 'text', nullable: true })
-  day12?: string;
+  @Column({ name: '11', type: 'jsonb', nullable: true })
+  day11?: AttendanceDay;
 
-  @Column({ name: '13', type: 'text', nullable: true })
-  day13?: string;
+  @Column({ name: '12', type: 'jsonb', nullable: true })
+  day12?: AttendanceDay;
 
-  @Column({ name: '14', type: 'text', nullable: true })
-  day14?: string;
+  @Column({ name: '13', type: 'jsonb', nullable: true })
+  day13?: AttendanceDay;
 
-  @Column({ name: '15', type: 'text', nullable: true })
-  day15?: string;
+  @Column({ name: '14', type: 'jsonb', nullable: true })
+  day14?: AttendanceDay;
 
-  @Column({ name: '16', type: 'text', nullable: true })
-  day16?: string;
+  @Column({ name: '15', type: 'jsonb', nullable: true })
+  day15?: AttendanceDay;
 
-  @Column({ name: '17', type: 'text', nullable: true })
-  day17?: string;
+  @Column({ name: '16', type: 'jsonb', nullable: true })
+  day16?: AttendanceDay;
 
-  @Column({ name: '18', type: 'text', nullable: true })
-  day18?: string;
+  @Column({ name: '17', type: 'jsonb', nullable: true })
+  day17?: AttendanceDay;
 
-  @Column({ name: '19', type: 'text', nullable: true })
-  day19?: string;
+  @Column({ name: '18', type: 'jsonb', nullable: true })
+  day18?: AttendanceDay;
 
-  @Column({ name: '20', type: 'text', nullable: true })
-  day20?: string;
+  @Column({ name: '19', type: 'jsonb', nullable: true })
+  day19?: AttendanceDay;
 
-  @Column({ name: '21', type: 'text', nullable: true })
-  day21?: string;
+  @Column({ name: '20', type: 'jsonb', nullable: true })
+  day20?: AttendanceDay;
 
-  @Column({ name: '22', type: 'text', nullable: true })
-  day22?: string;
+  @Column({ name: '21', type: 'jsonb', nullable: true })
+  day21?: AttendanceDay;
 
-  @Column({ name: '23', type: 'text', nullable: true })
-  day23?: string;
+  @Column({ name: '22', type: 'jsonb', nullable: true })
+  day22?: AttendanceDay;
 
-  @Column({ name: '24', type: 'text', nullable: true })
-  day24?: string;
+  @Column({ name: '23', type: 'jsonb', nullable: true })
+  day23?: AttendanceDay;
 
-  @Column({ name: '25', type: 'text', nullable: true })
-  day25?: string;
+  @Column({ name: '24', type: 'jsonb', nullable: true })
+  day24?: AttendanceDay;
 
-  @Column({ name: '26', type: 'text', nullable: true })
-  day26?: string;
+  @Column({ name: '25', type: 'jsonb', nullable: true })
+  day25?: AttendanceDay;
 
-  @Column({ name: '27', type: 'text', nullable: true })
-  day27?: string;
+  @Column({ name: '26', type: 'jsonb', nullable: true })
+  day26?: AttendanceDay;
 
-  @Column({ name: '28', type: 'text', nullable: true })
-  day28?: string;
+  @Column({ name: '27', type: 'jsonb', nullable: true })
+  day27?: AttendanceDay;
 
-  @Column({ name: '29', type: 'text', nullable: true })
-  day29?: string;
+  @Column({ name: '28', type: 'jsonb', nullable: true })
+  day28?: AttendanceDay;
 
-  @Column({ name: '30', type: 'text', nullable: true })
-  day30?: string;
+  @Column({ name: '29', type: 'jsonb', nullable: true })
+  day29?: AttendanceDay;
 
-  @Column({ name: '31', type: 'text', nullable: true })
-  day31?: string;
+  @Column({ name: '30', type: 'jsonb', nullable: true })
+  day30?: AttendanceDay;
+
+  @Column({ name: '31', type: 'jsonb', nullable: true })
+  day31?: AttendanceDay;
 }

@@ -16,35 +16,33 @@ export class AttendanceHandler {
     private transformService: TransformService,
   ) {}
 
-  async handleAttendanceUpsert(data: AttendanceEventData): Promise<any> {
-    try {
-      // Validate required fields
-      validateString(data.userId, 'userId');
-      validateString(data.tenantId, 'tenantId');
-      validateString(data.attendanceDate, 'attendanceDate');
-      validateString(data.attendance, 'attendance');
-      validateDate(data.attendanceDate, 'attendanceDate');
+  
+async handleAttendanceUpsert(data: AttendanceEventData): Promise<any> {
+ 
+ console.log(data);
+ 
+  try {
+    validateString(data.userId, 'userId');
+    validateString(data.tenantId, 'tenantId');
+    validateDate(data.attendanceDate, 'attendanceDate');
+    validateString(data.attendance, 'attendance');
 
-      // Use new AttendanceTracker transformation
-      const { attendanceData, dayColumn, attendanceValue } =
-        await this.transformService.transformAttendanceData(data);
-      return await this.dbService.upsertAttendanceTracker(
-        attendanceData,
-        dayColumn,
-        attendanceValue,
-      );
-    } catch (error) {
-      if (error instanceof ValidationError) {
-        console.error(
-          'Validation failed in handleAttendanceUpsert:',
-          error.message,
-        );
-        throw new Error(`Validation failed: ${error.message}`);
-      }
-      console.error('Error handling attendance upsert:', error);
-      throw error;
+    // ✅ CORRECT: destructure
+    const { attendanceData, dayColumn } =
+      await this.transformService.transformAttendanceData(data);
+
+    // ✅ Pass correct types
+    return await this.dbService.upsertAttendanceTracker(
+      attendanceData,
+      dayColumn,
+    );
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      throw new Error(`Validation failed: ${error.message}`);
     }
+    throw error;
   }
+}
 
   async handleAttendanceDelete(data: {
     userId: string;

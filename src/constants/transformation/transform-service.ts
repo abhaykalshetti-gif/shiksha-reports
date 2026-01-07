@@ -13,7 +13,7 @@ import {
 import { Cohort } from 'src/entities/cohort.entity';
 import { DatabaseService } from 'src/services/database.service';
 
-import { AttendanceTracker } from 'src/entities/attendance-tracker.entity';
+import { AttendanceDay, AttendanceTracker } from 'src/entities/attendance-tracker.entity';
 import { AssessmentTracker } from 'src/entities/assessment-tracker.entity';
 import { CourseTracker } from 'src/entities/course-tracker.entity';
 import { ContentTracker } from 'src/entities/content-tracker.entity';
@@ -357,40 +357,51 @@ export class TransformService {
     return data;
   }
 
-  async transformAttendanceData(data: AttendanceEventData): Promise<{
-    attendanceData: Partial<AttendanceTracker>;
-    dayColumn: string;
-    attendanceValue: string;
-  }> {
-    try {
-      // Parse the attendance date
-      const attendanceDate = new Date(data.attendanceDate);
-      const year = attendanceDate.getFullYear();
-      const month = attendanceDate.getMonth() + 1; // getMonth() returns 0-11
-      const day = attendanceDate.getDate();
+  // Updated by abhay
+async transformAttendanceData(data: AttendanceEventData): Promise<{attendanceData: Partial<AttendanceTracker>;
+  dayColumn: keyof AttendanceTracker;
+}> {
+  try {
+    const attendanceDate = new Date(data.attendanceDate);
+    const year = attendanceDate.getFullYear();
+    const month = attendanceDate.getMonth() + 1;
+    const day = attendanceDate.getDate();
 
-      // Format day as two-digit string for column mapping
-      const dayColumn = `day${day.toString().padStart(2, '0')}`;
+    const dayColumn = `day${day.toString().padStart(2, '0')}` as keyof AttendanceTracker;
 
-      const transformedData: Partial<AttendanceTracker> = {
-        tenantId: data.tenantId,
-        context: data.context,
-        contextId: data.contextId,
-        userId: data.userId,
-        year: year,
-        month: month,
-      };
+    const dayAttendance: AttendanceDay = {
+      scope: data.scope,
+      remark: data.remark,
+      lateMark: data.lateMark,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      attendance: data.attendance,
+      absentReason: data.absentReason,
+      validLocation: data.validLocation,
+      ...data.metaData
+    };
 
-      return {
-        attendanceData: transformedData,
-        dayColumn: dayColumn,
-        attendanceValue: data.attendance,
-      };
-    } catch (error) {
-      console.error('Error transforming attendance data:', error);
-      throw error;
-    }
+    const transformedData: Partial<AttendanceTracker> = {
+      tenantId: data.tenantId,
+      context: data.context,
+      contextId: data.contextId,
+      userId: data.userId,
+      year,
+      month,
+
+      [dayColumn]: dayAttendance,
+    };
+
+    return {
+      attendanceData: transformedData,
+      dayColumn,
+    };
+  } catch (error) {
+    console.error('Error transforming attendance data:', error);
+    throw error;
   }
+}
+
 
   // Keep the old method for backward compatibility if needed
   async transformDailyAttendanceData(data: AttendanceEventData) {
