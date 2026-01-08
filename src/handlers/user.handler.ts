@@ -118,6 +118,7 @@ export class UserHandler {
 
   async handleUserTenantStatusUpdate(data: any) {
     try {
+      console.log('handleUserTenantStatusUpdate data', data);
       // Validate required fields
       validateString(data.userId, 'userId');
       validateString(data.tenantId, 'tenantId');
@@ -154,7 +155,7 @@ export class UserHandler {
         const userUpdateData = {
           userId: data.userId,
           username: data.user.username,
-          fullName: `${data.user.firstName || ''} ${data.user.lastName || ''}`.trim(),
+          fullName: `${data.user.firstName || ''} ${data.user.middleName ? data.user.middleName + ' ' : '' } ${data.user.lastName || ''}`.trim(),
           email: data.user.email,
           mobile: data.user.mobile?.toString(),
           updatedAt: data.updatedAt ? new Date(data.updatedAt) : new Date(),
@@ -176,6 +177,7 @@ export class UserHandler {
 
   async handleUserTenantMapping(data: any) {
     try {
+      console.log(data,"Shubham");
       // Validate required fields
       validateString(data.userId, 'userId');
       validateString(data.tenantId, 'tenantId');
@@ -195,15 +197,17 @@ export class UserHandler {
         await this.dbService.saveUserProfileData(transformedUserData);
         console.log(`[UserHandler] User profile updated with custom fields for userId=${data.userId}`);
       } else if (data.user) {
+        console.log(data.user.firstName,data.user.lastName,"")
         // Fallback to basic user update if no custom fields
         const userUpdateData = {
           userId: data.userId,
           username: data.user.username,
-          fullName: `${data.user.firstName || ''} ${data.user.lastName || ''}`.trim(),
+          fullName: `${data.user.firstName || ''} ${data.user.middleName ? data.user.middleName + ' ' : '' } ${data.user.lastName || ''}`.trim(),
           email: data.user.email,
           mobile: data.user.mobile?.toString(),
           updatedAt: data.updatedAt ? new Date(data.updatedAt) : new Date(),
         };
+        console.log(userUpdateData)
         await this.dbService.saveUserProfileData(userUpdateData);
         console.log(`[UserHandler] User profile updated for userId=${data.userId}`);
       }

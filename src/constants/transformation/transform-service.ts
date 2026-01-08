@@ -116,7 +116,7 @@ export class TransformService {
         userId: data.userId,
         username: data.username,
         fullName:
-          `${data.firstName || ''} ${data.middleName ? data.middleName + ' ' : ''}${data.lastName || ''}`.trim(),
+          `${data.firstName || ''} ${data.middleName ? data.middleName + ' ' : ''}${data.lastName || ''}`.trim() || undefined,
         email: data.email,
         mobile: data.mobile?.toString(),
         dob: data.dob,
@@ -173,7 +173,7 @@ export class TransformService {
         psu: extractCustomField('PSU'),
         groupMembership: extractCustomField('EMP_GROUP'),
       };
-
+      console.log(transformedData,"");
       return transformedData;
     } catch (error) {
       console.error('Error transforming user data:', error);
