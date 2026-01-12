@@ -19,7 +19,6 @@ export class AttendanceHandler {
   
 async handleAttendanceUpsert(data: AttendanceEventData): Promise<any> {
  
- console.log(data);
  
   try {
     validateString(data.userId, 'userId');
@@ -36,6 +35,7 @@ async handleAttendanceUpsert(data: AttendanceEventData): Promise<any> {
       attendanceData,
       dayColumn,
     );
+    
   } catch (error) {
     if (error instanceof ValidationError) {
       throw new Error(`Validation failed: ${error.message}`);
