@@ -272,6 +272,9 @@ export class User {
   @Column({ name: 'IsManager', type: 'text', nullable: true })
   isManager?: string;
 
+   @Column({ name: 'UserDepartment', type: 'text', nullable: true })
+  userDepartment?: string;
+
   @Column({ name: 'UserLastLogin', type: "timestamptz", nullable: true })
   userLastLogin: Date | null; // Timestamp for last login
 
