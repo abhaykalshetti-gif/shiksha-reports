@@ -54,7 +54,7 @@ export class User {
   blockId?: string;
 
   @Column({
-    name: 'UserVillageID',
+    name: 'UserVillageId',
     type: 'varchar',
     length: 50,
     nullable: true,
@@ -109,7 +109,7 @@ export class User {
   })
   phoneTypeAccessible?: string;
 
-  @Column({ name: 'UserCEFRLevel', type: 'varchar', length: 100, nullable: true })
+  @Column({ name: 'UserCEFRLevel', type: 'varchar', length: 50, nullable: true })
   userCEFRLevel?: string;
 
   @Column({
@@ -142,13 +142,13 @@ export class User {
   })
   userParentPhone?: string;
 
-  @Column({ name: 'UserOldTeacherId', type: 'varchar', length: 100, nullable: true })
+  @Column({ name: 'UserOldTeacherID', type: 'varchar', length: 100, nullable: true })
   userOldTeacherId?: string;
 
   @Column({ name: 'UserRole', type: 'varchar', length: 100, nullable: true })
   userRole?: string;
 
-  @Column({ name: 'UserTeacherId', type: 'varchar', length: 100, nullable: true })
+  @Column({ name: 'UserTeacherID', type: 'varchar', length: 100, nullable: true })
   userTeacherId?: string;
 
   @Column({ name: 'UserProgram', type: 'varchar', length: 100, nullable: true })

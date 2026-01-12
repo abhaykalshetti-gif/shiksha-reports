@@ -32,7 +32,10 @@ export class TransformService {
   constructor(private readonly dbService: DatabaseService) {}
 
   async transformUserData(data: UserEventData) {
+            
+    console.log(data.customFields)
     try {
+      
       // const tenant = data.tenantData?.[0] ?? {}; // Commented out as it's not used
 
       // Extract custom field values from the new Kafka message structure
@@ -122,8 +125,6 @@ export class TransformService {
         mobile: data.mobile?.toString(),
         dob: data.dob,
         gender: data.gender,
-
-        
         status: convertStatusToBoolean(data.status),
         createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
         updatedAt: data.updatedAt ? new Date(data.updatedAt) : undefined,
@@ -177,8 +178,8 @@ export class TransformService {
         groupMembership: extractCustomField('EMP_GROUP'),
 
           // NEW FIELDS ADDED by ABHAY
-        userSubjectTaught: extractCustomField('USER_SUBJECT_TAUGHT'),
-        userGrade: extractCustomField('USER_GRADE'),
+        userSubjectTaught: extractCustomField('SUBJECT_TAUGHT'),
+        userGrade: extractCustomField('GRADE'),
         userDesignation: extractCustomField('USER_DESIGINATION'),
         userTrainingCheck: convertToBoolean(extractCustomField('USER_TRAINING_CHECK')),
         userMainSubject: extractCustomField('USER_MAIN_SUBJECT'),
@@ -188,19 +189,19 @@ export class TransformService {
         userPhoneType: extractCustomField('USER_PHONE_TYPE'),
         userCustomField: extractCustomField('USER_CUSTOM_FIELD'),
         userLastLogin: new Date(extractCustomField('USER_LAST_LOGIN')),
-        userAccessToWhatsApp: extractCustomField('USER_ACCESS_TO_WHATSAPP'),
-        userProgram: extractCustomField('USER_PROGRAM'),
-        userDateOfJoining: extractCustomField('USER_DATE_OF_JOINING'),
+        userAccessToWhatsApp: extractCustomField('ACCESS_TO_WHATSAPP'),
+        userProgram: extractCustomField('PROGRAM'),
+        userDateOfJoining: extractCustomField('DATE_OF_JOINING'),
         userTeacherId: extractCustomField('USER_TEACHER_ID'),
-        userOldTeacherId: extractCustomField('USER_OLD_TEACHER_ID'),
+        userOldTeacherId: extractCustomField('OLD_TEACHER_ID'),
         userCERFLevel: extractCustomField('USER_CERF_LEVEL'),
-        userSubPrograms: extractCustomField('USER_SUBPROGRAMS'),
-        userRole: extractCustomField('USER_ROLE'),
+        userSubPrograms: extractCustomField('SUB_PROGRAM'),
+        userRole: extractCustomField('ROLE'),
         userClusterId : extractCustomField('USER_CLUSTER_ID'),
-        userSupervisors: extractCustomField('USER_SUPERVISORS'),
-        userDateOfLeaving: extractCustomField('USER_DATE_OF_LEAVING'),
+        userSupervisors: extractCustomField('SUPERVISOR'),
+        userDateOfLeaving: extractCustomField('DATE_OF_LEAVING'),
         userReasonForLeaving: extractCustomField('USER_REASON_FOR_LEAVING'),
-        userDepartment: extractCustomField('USER_DEPARTMENT'),
+        userDepartment: extractCustomField('Department'),
 createdBy: extractCustomField('CREATED_BY'),
 updatedBy:extractCustomField('UPDATED_BY'),
       };
