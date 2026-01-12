@@ -28,6 +28,9 @@ export class User {
   @Column({ name: 'UserGender', type: 'varchar', length: 20, nullable: true })
   gender?: string;
 
+  @Column({ name: 'UserAccessToWhatsApp', type: 'varchar', length: 100, nullable: true })
+  userAccessToWhatsApp?: string;
+
   @Column({
     name: 'UserIsActive',
     type: 'boolean',
@@ -106,6 +109,9 @@ export class User {
   })
   phoneTypeAccessible?: string;
 
+  @Column({ name: 'UserCEFRLevel', type: 'varchar', length: 100, nullable: true })
+  userCEFRLevel?: string;
+
   @Column({
     name: 'UserWhatDoYouWantToBecome',
     type: 'varchar',
@@ -116,6 +122,9 @@ export class User {
 
   @Column({ name: 'UserClass', type: 'varchar', length: 50, nullable: true })
   userClass?: string;
+
+  @Column({ name: 'UserSupervisors', type: 'varchar', length: 100, nullable: true })
+  userSupervisors?: string;
 
   @Column({
     name: 'UserPreferredLanguage',
@@ -133,6 +142,17 @@ export class User {
   })
   userParentPhone?: string;
 
+  @Column({ name: 'UserOldTeacherId', type: 'varchar', length: 100, nullable: true })
+  userOldTeacherId?: string;
+
+  @Column({ name: 'UserRole', type: 'varchar', length: 100, nullable: true })
+  userRole?: string;
+
+  @Column({ name: 'UserTeacherId', type: 'varchar', length: 100, nullable: true })
+  userTeacherId?: string;
+
+  @Column({ name: 'UserProgram', type: 'varchar', length: 100, nullable: true })
+  userProgram?: string;
   @Column({
     name: 'UserGuardianRelation',
     type: 'varchar',
@@ -169,6 +189,9 @@ export class User {
   @Column({ name: 'UserOwnPhoneCheck', type: 'boolean', nullable: true })
   userOwnPhoneCheck?: boolean;
 
+  @Column({ name: 'UserSubprograms', type: 'varchar', length: 100, nullable: true })
+  userSubprograms?: string;
+
   @Column({
     name: 'UserEnrollmentNumber',
     type: 'varchar',
@@ -191,6 +214,13 @@ export class User {
   @Column({ name: 'UserSubject', type: 'varchar', length: 150, nullable: true })
   userSubject?: string;
 
+
+  @Column({ name: 'UserDateOfLeaving', type: 'date', nullable: true })
+  userDateOfLeaving?: string;
+
+   @Column({ name: 'UserDateOfJoining', type: 'date', nullable: true })
+  userDateOfJoining?: string;
+
   @Column({
     name: 'UserMainSubject',
     type: 'varchar',
@@ -201,6 +231,9 @@ export class User {
 
   @Column({ name: 'UserMedium', type: 'varchar', length: 100, nullable: true })
   userMedium?: string;
+
+  @Column({ name: 'UserClusterId', type: 'varchar', length: 100, nullable: true })
+  userClusterId?: string;
 
   @Column({
     name: 'UserGuardianName',
@@ -268,6 +301,12 @@ export class User {
 
   @Column({ name: 'ERPUserID', type: 'text', nullable: true })
   erpUserId?: string;
+
+@Column({ name: 'UserReasonForLeaving', type: 'text', nullable: true })
+  userReasonForLeaving?: string;
+
+
+
 
   @Column({ name: 'IsManager', type: 'text', nullable: true })
   isManager?: string;
