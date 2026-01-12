@@ -32,7 +32,7 @@ export class User {
     name: 'UserIsActive',
     type: 'boolean',
     nullable: true,
-    default: () => 'true',
+    default: () => 'true'
   })
   status?: boolean;
 

@@ -36,6 +36,7 @@ export class TransformService {
       // const tenant = data.tenantData?.[0] ?? {}; // Commented out as it's not used
 
       // Extract custom field values from the new Kafka message structure
+      
       const extractCustomField = (label: string) => {
         if (!data.customFields || !Array.isArray(data.customFields)) {
           return null;
@@ -110,7 +111,7 @@ export class TransformService {
         if (!status) return null;
         return status.toLowerCase() === 'active';
       };
-
+      
       const transformedData: Partial<User> & Record<string, any> = {
         // Basic user fields - mapping to entity property names (not column names)
         userId: data.userId,
@@ -121,6 +122,8 @@ export class TransformService {
         mobile: data.mobile?.toString(),
         dob: data.dob,
         gender: data.gender,
+
+        
         status: convertStatusToBoolean(data.status),
         createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
         updatedAt: data.updatedAt ? new Date(data.updatedAt) : undefined,
@@ -172,6 +175,34 @@ export class TransformService {
         jobFamily: extractCustomField('JOB_FAMILY'),
         psu: extractCustomField('PSU'),
         groupMembership: extractCustomField('EMP_GROUP'),
+
+          // NEW FIELDS ADDED by ABHAY
+        userSubjectTaught: extractCustomField('USER_SUBJECT_TAUGHT'),
+        userGrade: extractCustomField('USER_GRADE'),
+        userDesignation: extractCustomField('USER_DESIGINATION'),
+        userTrainingCheck: convertToBoolean(extractCustomField('USER_TRAINING_CHECK')),
+        userMainSubject: extractCustomField('USER_MAIN_SUBJECT'),
+        userMedium: extractCustomField('USER_MEDIUM'),
+        userBoard: extractCustomField('USER_BOARD'),
+        userNumOfChildrenWorkingWith: extractCustomField('USER_NUMBER_OF_CHILDRENS_WORKING_WITH'),
+        userPhoneType: extractCustomField('USER_PHONE_TYPE'),
+        userCustomField: extractCustomField('USER_CUSTOM_FIELD'),
+        userLastLogin: new Date(extractCustomField('USER_LAST_LOGIN')),
+        userAccessToWhatsApp: extractCustomField('USER_ACCESS_TO_WHATSAPP'),
+        userProgram: extractCustomField('USER_PROGRAM'),
+        userDateOfJoining: extractCustomField('USER_DATE_OF_JOINING'),
+        userTeacherId: extractCustomField('USER_TEACHER_ID'),
+        userOldTeacherId: extractCustomField('USER_OLD_TEACHER_ID'),
+        userCERFLevel: extractCustomField('USER_CERF_LEVEL'),
+        userSubPrograms: extractCustomField('USER_SUBPROGRAMS'),
+        userRole: extractCustomField('USER_ROLE'),
+        userClusterId : extractCustomField('USER_CLUSTER_ID'),
+        userSupervisors: extractCustomField('USER_SUPERVISORS'),
+        userDateOfLeaving: extractCustomField('USER_DATE_OF_LEAVING'),
+        userReasonForLeaving: extractCustomField('USER_REASON_FOR_LEAVING'),
+        userDepartment: extractCustomField('USER_DEPARTMENT'),
+createdBy: extractCustomField('CREATED_BY'),
+updatedBy:extractCustomField('UPDATED_BY'),
       };
 
       return transformedData;
