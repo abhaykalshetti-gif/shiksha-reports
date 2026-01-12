@@ -23,7 +23,7 @@ export class AttendanceHandler {
       validateString(data.tenantId, 'tenantId');
       validateString(data.attendanceDate, 'attendanceDate');
       validateString(data.attendance, 'attendance');
-      validateDate(data.attendanceDate, 'attendanceDate');
+    
 
       // Use new AttendanceTracker transformation
       const { attendanceData, dayColumn, attendanceValue } =

@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { User } from '../../entities/user.entity';
 import { DailyAttendanceReport } from '../../entities/daily-attendance-report.entity';
-
 import {
   UserEventData,
   AttendanceEventData,
@@ -24,7 +23,11 @@ import { Content } from 'src/entities/content.entity';
 import { Project } from 'src/entities/project.entity';
 import { ProjectTask } from 'src/entities/projectTask.entity';
 import { ProjectTaskTracking } from 'src/entities/projectTaskTracking.entity';
-import { ExternalCourseData, ExternalQuestionSetData, ExternalContentData } from 'src/types/cron.types';
+import {
+  ExternalCourseData,
+  ExternalQuestionSetData,
+  ExternalContentData,
+} from 'src/types/cron.types';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -61,7 +64,7 @@ export class TransformService {
           selectedValue !== null
         ) {
           // Return the 'value' property if it exists, otherwise 'id'
-          return selectedValue.id ;
+          return selectedValue.id;
         }
 
         return null;
@@ -72,7 +75,9 @@ export class TransformService {
         if (!data.customFields || !Array.isArray(data.customFields)) {
           return null;
         }
-        const field = data?.customFields.find((f: any) => f?.fieldId === fieldId);
+        const field = data?.customFields.find(
+          (f: any) => f?.fieldId === fieldId,
+        );
 
         if (
           !field ||
@@ -165,9 +170,15 @@ export class TransformService {
         ),
 
         // ERP and Manager fields (extracted by fieldId)
-        erpUserId: extractCustomFieldById('93de5cc5-9437-4ca7-95f3-3b2f31b24093'),
-        isManager: extractCustomFieldById('8e8ab9b7-8ce0-4e6e-bf7e-0477a80734c8'),
-        empManager: extractCustomFieldById('27589b6d-6ece-457a-8d50-d15a3db02bf6'),
+        erpUserId: extractCustomFieldById(
+          '93de5cc5-9437-4ca7-95f3-3b2f31b24093',
+        ),
+        isManager: extractCustomFieldById(
+          '8e8ab9b7-8ce0-4e6e-bf7e-0477a80734c8',
+        ),
+        empManager: extractCustomFieldById(
+          '27589b6d-6ece-457a-8d50-d15a3db02bf6',
+        ),
         // JobFamily, PSU, GroupMembership mapped to proper columns
         jobFamily: extractCustomField('JOB_FAMILY'),
         psu: extractCustomField('PSU'),
@@ -357,7 +368,7 @@ export class TransformService {
     return data;
   }
 
-  async transformAttendanceData(data: AttendanceEventData): Promise<{
+  async transformAttendanceData(data: any): Promise<{
     attendanceData: Partial<AttendanceTracker>;
     dayColumn: string;
     attendanceValue: string;
@@ -372,15 +383,27 @@ export class TransformService {
       // Format day as two-digit string for column mapping
       const dayColumn = `day${day.toString().padStart(2, '0')}`;
 
+      const dayAttendance = {
+        scope: data.scope,
+        remark: data.remark,
+        lateMark: data.lateMark,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        attendance: data.attendance,
+        absentReason: data.absentReason,
+        validLocation: data.validLocation,
+        ...data.metaData,
+      };
+
       const transformedData: Partial<AttendanceTracker> = {
         tenantId: data.tenantId,
         context: data.context,
         contextId: data.contextId,
         userId: data.userId,
-        year: year,
-        month: month,
+        year,
+        month,
+        [dayColumn]: dayAttendance,
       };
-
       return {
         attendanceData: transformedData,
         dayColumn: dayColumn,
@@ -548,7 +571,11 @@ export class TransformService {
                 tenantRegnDate: platformRegnDate, // Same as platform date for new registrations
                 isActive: true,
                 // Include reason if provided (from tenant, role, or data level)
-                reason: (tenant as any).reason || (role as any).reason || (data as any).reason || undefined,
+                reason:
+                  (tenant as any).reason ||
+                  (role as any).reason ||
+                  (data as any).reason ||
+                  undefined,
               };
               registrationTrackers.push(registrationTracker);
             }
@@ -566,7 +593,9 @@ export class TransformService {
   /**
    * Transform external course data to Course entity format
    */
-  async transformExternalCourseData(data: ExternalCourseData): Promise<Partial<Course>> {
+  async transformExternalCourseData(
+    data: ExternalCourseData,
+  ): Promise<Partial<Course>> {
     try {
       // Validate required fields
       if (!data.identifier) {
@@ -574,30 +603,32 @@ export class TransformService {
       }
 
       // Transform date fields
-      const transformDate = (dateValue: string | Date | null | undefined): Date | null => {
+      const transformDate = (
+        dateValue: string | Date | null | undefined,
+      ): Date | null => {
         if (!dateValue) return null;
-        
+
         if (typeof dateValue === 'string') {
           const parsed = new Date(dateValue);
           return isNaN(parsed.getTime()) ? null : parsed;
         }
-        
+
         if (dateValue instanceof Date) {
           return isNaN(dateValue.getTime()) ? null : dateValue;
         }
-        
+
         return null;
       };
 
       // Transform text fields to handle arrays and objects
       const transformText = (value: any): string | null => {
         if (!value) return null;
-        
+
         if (typeof value === 'string') return value;
         if (typeof value === 'number') return value.toString();
         if (Array.isArray(value)) return value.join(', ');
         if (typeof value === 'object') return JSON.stringify(value);
-        
+
         return null;
       };
 
@@ -631,7 +662,9 @@ export class TransformService {
   /**
    * Transform external question set data to QuestionSet entity format
    */
-  async transformQuestionSetData(data: ExternalQuestionSetData): Promise<Partial<QuestionSet>> {
+  async transformQuestionSetData(
+    data: ExternalQuestionSetData,
+  ): Promise<Partial<QuestionSet>> {
     try {
       // Validate required fields
       if (!data.identifier) {
@@ -639,35 +672,40 @@ export class TransformService {
       }
 
       // Transform date fields
-      const transformDate = (dateValue: string | Date | null | undefined): Date | null => {
+      const transformDate = (
+        dateValue: string | Date | null | undefined,
+      ): Date | null => {
         if (!dateValue) return null;
-        
+
         if (typeof dateValue === 'string') {
           const parsed = new Date(dateValue);
           return isNaN(parsed.getTime()) ? null : parsed;
         }
-        
+
         if (dateValue instanceof Date) {
           return isNaN(dateValue.getTime()) ? null : dateValue;
         }
-        
+
         return null;
       };
 
       // Transform text fields to handle arrays and objects
       const transformText = (value: any): string | null => {
         if (!value) return null;
-        
+
         if (typeof value === 'string') return value;
         if (typeof value === 'number') return value.toString();
         if (Array.isArray(value)) return value.join(', ');
         if (typeof value === 'object') return JSON.stringify(value);
-        
+
         return null;
       };
 
       // Handle different field name variations from API
-      const getFieldValue = (primaryField: any, alternativeField?: any): any => {
+      const getFieldValue = (
+        primaryField: any,
+        alternativeField?: any,
+      ): any => {
         return primaryField || alternativeField || null;
       };
 
@@ -678,7 +716,9 @@ export class TransformService {
         createdOn: transformDate(getFieldValue(data.createdOn)),
         program: transformText(getFieldValue(data.program)),
         assessmentType: data.assessmentType || null,
-        contentLanguage: transformText(getFieldValue(data.contentLanguage, data.language)),
+        contentLanguage: transformText(
+          getFieldValue(data.contentLanguage, data.language),
+        ),
       };
 
       return transformedData;
@@ -694,7 +734,9 @@ export class TransformService {
   /**
    * Transform external content data to Content entity format
    */
-  async transformContentData(data: ExternalContentData): Promise<Partial<Content>> {
+  async transformContentData(
+    data: ExternalContentData,
+  ): Promise<Partial<Content>> {
     try {
       // Validate required fields
       if (!data.identifier) {
@@ -702,30 +744,32 @@ export class TransformService {
       }
 
       // Transform date fields
-      const transformDate = (dateValue: string | Date | null | undefined): Date | null => {
+      const transformDate = (
+        dateValue: string | Date | null | undefined,
+      ): Date | null => {
         if (!dateValue) return null;
-        
+
         if (typeof dateValue === 'string') {
           const parsed = new Date(dateValue);
           return isNaN(parsed.getTime()) ? null : parsed;
         }
-        
+
         if (dateValue instanceof Date) {
           return isNaN(dateValue.getTime()) ? null : dateValue;
         }
-        
+
         return null;
       };
 
       // Transform text fields to handle arrays and objects
       const transformText = (value: any): string | null => {
         if (!value) return null;
-        
+
         if (typeof value === 'string') return value;
         if (typeof value === 'number') return value.toString();
         if (Array.isArray(value)) return value.join(', ');
         if (typeof value === 'object') return JSON.stringify(value);
-        
+
         return null;
       };
 
@@ -789,39 +833,39 @@ export class TransformService {
       const transformedData: Partial<Project> = {
         // ProjectId <- solutionId
         ProjectId: data.solution.solutionId,
-        
+
         // ProjectName <- projectTemplate.title
         ProjectName: data.projectTemplate.title || null,
-        
+
         // Board <- projectTemplate.metaData.board
         Board: data.projectTemplate.metaData?.board || null,
-        
+
         // Medium <- projectTemplate.metaData.medium
         Medium: data.projectTemplate.metaData?.medium || null,
-        
+
         // Subject <- projectTemplate.metaData.subject
         Subject: data.projectTemplate.metaData?.subject || null,
-        
+
         // Grade <- projectTemplate.metaData.class
         Grade: data.projectTemplate.metaData?.class || null,
-        
+
         // Type <- projectTemplate.metaData.type
         Type: data.projectTemplate.metaData?.type || null,
-        
+
         // StartDate <- program.startDate
         StartDate: parseDate(data.program?.startDate),
-        
+
         // EndDate <- program.endDate
         EndDate: parseDate(data.program?.endDate),
-        
+
         // CreatedBy <- null (as per mapping)
         CreatedBy: null,
-        
+
         // TenantId and AcademicYear are default - no need to handle
       };
 
       console.log(
-        `[TransformService] Transformed project data: ProjectId=${transformedData.ProjectId}, ProjectName=${transformedData.ProjectName}`
+        `[TransformService] Transformed project data: ProjectId=${transformedData.ProjectId}, ProjectName=${transformedData.ProjectName}`,
       );
 
       return transformedData;
@@ -840,7 +884,10 @@ export class TransformService {
       if (!data.solution?.solutionId) {
         throw new Error('Solution ID is required for project tasks');
       }
-      if (!data.projectTemplateTasks || !Array.isArray(data.projectTemplateTasks)) {
+      if (
+        !data.projectTemplateTasks ||
+        !Array.isArray(data.projectTemplateTasks)
+      ) {
         throw new Error('Project template tasks array is required');
       }
 
@@ -868,50 +915,52 @@ export class TransformService {
       };
 
       // Transform each task
-      const transformedTasks: Partial<ProjectTask>[] = tasks.map((task: any) => {
-        // Determine ParentId by looking up the _id of the parent task
-        let parentId: string | null = null;
-        if (task.parentTaskId) {
-          // parentTaskId contains the externalId of the parent
-          parentId = externalIdToIdMap[task.parentTaskId] || null;
-        }
+      const transformedTasks: Partial<ProjectTask>[] = tasks.map(
+        (task: any) => {
+          // Determine ParentId by looking up the _id of the parent task
+          let parentId: string | null = null;
+          if (task.parentTaskId) {
+            // parentTaskId contains the externalId of the parent
+            parentId = externalIdToIdMap[task.parentTaskId] || null;
+          }
 
-        const transformedTask: Partial<ProjectTask> = {
-          // ProjectTaskId <- task._id
-          ProjectTaskId: task._id,
-          
-          // ProjectId <- solutionId
-          ProjectId: projectId,
-          
-          // TaskName <- task.name
-          TaskName: task.name || null,
-          
-          // ParentId <- _id of the parent task (looked up via parentTaskId -> externalId mapping)
-          ParentId: parentId,
-          
-          // StartDate <- task.startDate
-          StartDate: parseDate(task.startDate),
-          
-          // EndDate <- task.endDate
-          EndDate: parseDate(task.endDate),
-          
-          // LearningResource <- task.learningResources (as JSON)
-          LearningResource: task.learningResources || null,
-          
-          // CreatedBy <- null
-          CreatedBy: null,
-          
-          // UpdatedBy <- null
-          UpdatedBy: null,
-          
-          // CreatedAt and UpdatedAt will use database defaults
-        };
+          const transformedTask: Partial<ProjectTask> = {
+            // ProjectTaskId <- task._id
+            ProjectTaskId: task._id,
 
-        return transformedTask;
-      });
+            // ProjectId <- solutionId
+            ProjectId: projectId,
+
+            // TaskName <- task.name
+            TaskName: task.name || null,
+
+            // ParentId <- _id of the parent task (looked up via parentTaskId -> externalId mapping)
+            ParentId: parentId,
+
+            // StartDate <- task.startDate
+            StartDate: parseDate(task.startDate),
+
+            // EndDate <- task.endDate
+            EndDate: parseDate(task.endDate),
+
+            // LearningResource <- task.learningResources (as JSON)
+            LearningResource: task.learningResources || null,
+
+            // CreatedBy <- null
+            CreatedBy: null,
+
+            // UpdatedBy <- null
+            UpdatedBy: null,
+
+            // CreatedAt and UpdatedAt will use database defaults
+          };
+
+          return transformedTask;
+        },
+      );
 
       console.log(
-        `[TransformService] Transformed ${transformedTasks.length} project tasks for ProjectId=${projectId}`
+        `[TransformService] Transformed ${transformedTasks.length} project tasks for ProjectId=${projectId}`,
       );
 
       return transformedTasks;
@@ -925,7 +974,9 @@ export class TransformService {
    * Transform project task update data from direct message to ProjectTask entity format
    * Handles both parent tasks and nested children
    */
-  async transformProjectTaskUpdateData(data: any): Promise<Partial<ProjectTask>[]> {
+  async transformProjectTaskUpdateData(
+    data: any,
+  ): Promise<Partial<ProjectTask>[]> {
     try {
       // Validate required fields
       if (!data.solutionId) {
@@ -939,7 +990,7 @@ export class TransformService {
       const allTasks: Partial<ProjectTask>[] = [];
 
       console.log(
-        `[TransformService] Processing project task update for ProjectId=${projectId}, total parent tasks=${data.tasks.length}`
+        `[TransformService] Processing project task update for ProjectId=${projectId}, total parent tasks=${data.tasks.length}`,
       );
 
       // Helper to safely parse dates (handles DD-MM-YYYY format)
@@ -953,7 +1004,7 @@ export class TransformService {
               const day = parseInt(parts[0], 10);
               const month = parseInt(parts[1], 10);
               const year = parseInt(parts[2], 10);
-              
+
               // Validate the parts
               if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
                 // Create date with month-1 (JavaScript months are 0-indexed)
@@ -962,7 +1013,7 @@ export class TransformService {
               }
             }
           }
-          
+
           // Fallback to standard Date parsing
           const parsed = new Date(dateValue);
           return isNaN(parsed.getTime()) ? null : parsed;
@@ -976,17 +1027,17 @@ export class TransformService {
         // Skip tasks without referenceId
         if (!task.referenceId) {
           console.warn(
-            `[TransformService] Skipping task without referenceId: ${task.name || task._id}`
+            `[TransformService] Skipping task without referenceId: ${task.name || task._id}`,
           );
           continue;
         }
 
         // Extract dates from metaInformation if available, otherwise from task directly
         const startDate = parseDate(
-          task.metaInformation?.startDate || task.startDate
+          task.metaInformation?.startDate || task.startDate,
         );
         const endDate = parseDate(
-          task.metaInformation?.endDate || task.endDate
+          task.metaInformation?.endDate || task.endDate,
         );
 
         // Transform parent task
@@ -1009,17 +1060,17 @@ export class TransformService {
             // Skip children without referenceId
             if (!child.referenceId) {
               console.warn(
-                `[TransformService] Skipping child task without referenceId: ${child.name || child._id}`
+                `[TransformService] Skipping child task without referenceId: ${child.name || child._id}`,
               );
               continue;
             }
 
             // Extract dates from child's metaInformation
             const childStartDate = parseDate(
-              child.metaInformation?.startDate || child.startDate
+              child.metaInformation?.startDate || child.startDate,
             );
             const childEndDate = parseDate(
-              child.metaInformation?.endDate || child.endDate
+              child.metaInformation?.endDate || child.endDate,
             );
 
             const childTask: Partial<ProjectTask> = {
@@ -1039,7 +1090,7 @@ export class TransformService {
       }
 
       console.log(
-        `[TransformService] Transformed ${allTasks.length} tasks (including children) for ProjectId=${projectId}`
+        `[TransformService] Transformed ${allTasks.length} tasks (including children) for ProjectId=${projectId}`,
       );
 
       return allTasks;
@@ -1053,7 +1104,9 @@ export class TransformService {
    * Transform project sync data to ProjectTaskTracking records
    * Only processes tasks with status === 'completed'
    */
-  async transformProjectTaskTrackingData(data: any): Promise<Partial<ProjectTaskTracking>[]> {
+  async transformProjectTaskTrackingData(
+    data: any,
+  ): Promise<Partial<ProjectTaskTracking>[]> {
     try {
       // Validate required fields
       if (!data.solutionId) {
@@ -1068,7 +1121,7 @@ export class TransformService {
       const trackingRecords: Partial<ProjectTaskTracking>[] = [];
 
       console.log(
-        `[TransformService] Processing project task tracking for ProjectId=${projectId}, total tasks=${data.tasks.length}`
+        `[TransformService] Processing project task tracking for ProjectId=${projectId}, total tasks=${data.tasks.length}`,
       );
 
       // Iterate through each task
@@ -1087,14 +1140,17 @@ export class TransformService {
           trackingRecords.push(trackingRecord);
 
           console.log(
-            `[TransformService] Added parent task: ${task.name} (referenceId=${task.referenceId})`
+            `[TransformService] Added parent task: ${task.name} (referenceId=${task.referenceId})`,
           );
         }
 
         // Check children tasks if they exist
         if (task.children && Array.isArray(task.children)) {
           for (const child of task.children) {
-            if (child.status?.toLowerCase() === 'completed' && child.referenceId) {
+            if (
+              child.status?.toLowerCase() === 'completed' &&
+              child.referenceId
+            ) {
               const childTrackingRecord: Partial<ProjectTaskTracking> = {
                 ProjectTaskTrackingId: uuidv4(), // Generate unique ID
                 ProjectId: projectId,
@@ -1107,7 +1163,7 @@ export class TransformService {
               trackingRecords.push(childTrackingRecord);
 
               console.log(
-                `[TransformService] Added child task: ${child.name} (referenceId=${child.referenceId})`
+                `[TransformService] Added child task: ${child.name} (referenceId=${child.referenceId})`,
               );
             }
           }
@@ -1115,7 +1171,7 @@ export class TransformService {
       }
 
       console.log(
-        `[TransformService] Transformed ${trackingRecords.length} completed task tracking records for ProjectId=${projectId}`
+        `[TransformService] Transformed ${trackingRecords.length} completed task tracking records for ProjectId=${projectId}`,
       );
 
       return trackingRecords;
@@ -1124,5 +1180,4 @@ export class TransformService {
       throw error;
     }
   }
-
 }
