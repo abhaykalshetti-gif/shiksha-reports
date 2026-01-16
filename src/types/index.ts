@@ -117,15 +117,22 @@ export interface AttendanceEventData {
   context?: string;
   contextId?: string;
   // Additional fields for backward compatibility
-  attendanceId?: string;
-  cohortId?: string;
-  status?: string;
-  metaData?: any;
-  metadata?: any;
-  createdAt?: string;
-  updatedAt?: string;
-  createdBy?: string;
-  updatedBy?: string;
+  scope: string;
+  remark: string;
+  lateMark: string;
+  latitude: string;
+  longitude: string;
+  absentReason: string;
+  validLocation: boolean;
+  attendanceId: string;
+  cohortId: string;
+  status: string;
+  metaData: any;
+  metadata: any;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  updatedBy: string;
 }
 
 export interface ContentTrackingData {

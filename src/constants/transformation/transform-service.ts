@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { User } from '../../entities/user.entity';
 import { DailyAttendanceReport } from '../../entities/daily-attendance-report.entity';
-
 import {
   UserEventData,
   AttendanceEventData,
@@ -133,7 +132,7 @@ export class TransformService {
         userId: data.userId,
         username: data.username,
         fullName:
-          `${data.firstName || ''} ${data.middleName ? data.middleName + ' ' : ''}${data.lastName || ''}`.trim(),
+          `${data.firstName || ''} ${data.middleName ? data.middleName + ' ' : ''}${data.lastName || ''}`.trim() || undefined,
         email: data.email,
         mobile: data.mobile?.toString(),
         dob: data.dob,
@@ -195,8 +194,8 @@ export class TransformService {
         erpUserId: extractCustomFieldById(
           '93de5cc5-9437-4ca7-95f3-3b2f31b24093',
         ),
-        isManager: convertToBoolean(
-          extractCustomFieldById('8e8ab9b7-8ce0-4e6e-bf7e-0477a80734c8'),
+        isManager: extractCustomFieldById(
+          '8e8ab9b7-8ce0-4e6e-bf7e-0477a80734c8',
         ),
         empManager: extractCustomFieldById(
           '27589b6d-6ece-457a-8d50-d15a3db02bf6',
@@ -349,7 +348,7 @@ export class TransformService {
           '0d501559-3bb2-44ed-8e33-850f6ed22666',
         ),
       };
-
+      console.log(transformedData,"");
       return transformedData;
     } catch (error) {
       console.error('Error transforming user data:', error);
@@ -597,7 +596,7 @@ export class TransformService {
     return data;
   }
 
-  async transformAttendanceData(data: AttendanceEventData): Promise<{
+  async transformAttendanceData(data: any): Promise<{
     attendanceData: Partial<AttendanceTracker>;
     dayColumn: string;
     attendanceValue: string;
@@ -612,15 +611,27 @@ export class TransformService {
       // Format day as two-digit string for column mapping
       const dayColumn = `day${day.toString().padStart(2, '0')}`;
 
+      const dayAttendance = {
+        scope: data.scope,
+        remark: data.remark,
+        lateMark: data.lateMark,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        attendance: data.attendance,
+        absentReason: data.absentReason,
+        validLocation: data.validLocation,
+        ...data.metaData,
+      };
+
       const transformedData: Partial<AttendanceTracker> = {
         tenantId: data.tenantId,
         context: data.context,
         contextId: data.contextId,
         userId: data.userId,
-        year: year,
-        month: month,
+        year,
+        month,
+        [dayColumn]: dayAttendance,
       };
-
       return {
         attendanceData: transformedData,
         dayColumn: dayColumn,
@@ -879,9 +890,71 @@ export class TransformService {
   /**
    * Transform external question set data to QuestionSet entity format
    */
-  async transformQuestionSetData(
-    data: ExternalQuestionSetData,
-  ): Promise<Partial<QuestionSet>> {
+  // async transformQuestionSetData(data: ExternalQuestionSetData): Promise<Partial<QuestionSet>> {
+  //   try {
+  //     // Validate required fields
+  //     if (!data.identifier) {
+  //       throw new Error('QuestionSet identifier is required');
+  //     }
+
+  //     // Transform date fields
+  //     const transformDate = (dateValue: string | Date | null | undefined): Date | null => {
+  //       if (!dateValue) return null;
+        
+  //       if (typeof dateValue === 'string') {
+  //         const parsed = new Date(dateValue);
+  //         return isNaN(parsed.getTime()) ? null : parsed;
+  //       }
+        
+  //       if (dateValue instanceof Date) {
+  //         return isNaN(dateValue.getTime()) ? null : dateValue;
+  //       }
+        
+  //       return null;
+  //     };
+
+  //     // Transform text fields to handle arrays and objects
+  //     const transformText = (value: any): string | null => {
+  //       if (!value) return null;
+        
+  //       if (typeof value === 'string') return value;
+  //       if (typeof value === 'number') return value.toString();
+  //       if (Array.isArray(value)) return value.join(', ');
+  //       if (typeof value === 'object') return JSON.stringify(value);
+        
+  //       return null;
+  //     };
+
+  //     // Handle different field name variations from API
+  //     const getFieldValue = (primaryField: any, alternativeField?: any): any => {
+  //       return primaryField || alternativeField || null;
+  //     };
+
+  //     const transformedData: Partial<QuestionSet> = {
+  //       identifier: data.identifier,
+  //       name: data.name || null,
+  //       childNodes: transformText(getFieldValue(data.childNodes)),
+  //       createdOn: transformDate(getFieldValue(data.createdOn)),
+  //       program: transformText(getFieldValue(data.program)),
+  //       assessmentType: data.assessmentType || null,
+  //       contentLanguage: transformText(getFieldValue(data.contentLanguage, data.language)),
+  //     };
+
+  //     return transformedData;
+  //   } catch (error) {
+  //     console.error('Error transforming question set data:', error, {
+  //       identifier: data.identifier,
+  //       error: error.message,
+  //     });
+  //     throw error;
+  //   }
+  // }
+
+  // ...existing code...
+  /**
+   * Transform external question set data to QuestionSet entity format
+   */
+  async transformQuestionSetData(data: ExternalQuestionSetData): Promise<Partial<QuestionSet>> {
     try {
       // Validate required fields
       if (!data.identifier) {
@@ -908,7 +981,7 @@ export class TransformService {
 
       // Transform text fields to handle arrays and objects
       const transformText = (value: any): string | null => {
-        if (!value) return null;
+        if (value === undefined || value === null) return null;
 
         if (typeof value === 'string') return value;
         if (typeof value === 'number') return value.toString();
@@ -919,34 +992,32 @@ export class TransformService {
       };
 
       // Handle different field name variations from API
-      const getFieldValue = (
-        primaryField: any,
-        alternativeField?: any,
-      ): any => {
-        return primaryField || alternativeField || null;
+      const getFieldValue = (primaryField: any, alternativeField?: any): any => {
+        return primaryField ?? alternativeField ?? null;
       };
 
-      const transformedData: Partial<QuestionSet> = {
+      const transformedData = {
         identifier: data.identifier,
         name: data.name || null,
         childNodes: transformText(getFieldValue(data.childNodes)),
         createdOn: transformDate(getFieldValue(data.createdOn)),
         program: transformText(getFieldValue(data.program)),
         assessmentType: data.assessmentType || null,
-        contentLanguage: transformText(
-          getFieldValue(data.contentLanguage, data.language),
-        ),
+        contentLanguage: transformText(getFieldValue(data.contentLanguage, data.language)),
+        // Added status mapping (supports variations like data.status or data.workflowStatus)
+        status: data.status,
       };
 
       return transformedData;
     } catch (error) {
       console.error('Error transforming question set data:', error, {
-        identifier: data.identifier,
+        identifier: (data && (data as any).identifier) || undefined,
         error: error.message,
       });
       throw error;
     }
   }
+// ...existing code...
 
   /**
    * Transform external content data to Content entity format
