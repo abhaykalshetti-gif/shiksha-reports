@@ -49,26 +49,42 @@ export class DatabaseService {
 
   private readonly logger = new Logger(DatabaseService.name);
 
-  private cohortMemberColumnTypeCache: Record<string, { isArray: boolean }> | null = null;
+  private cohortMemberColumnTypeCache: Record<
+    string,
+    { isArray: boolean }
+  > | null = null;
 
-  private async loadCohortMemberColumnTypes(schema: string, tableName: string, columns: string[]) {
-    if (this.cohortMemberColumnTypeCache) return this.cohortMemberColumnTypeCache;
+  private async loadCohortMemberColumnTypes(
+    schema: string,
+    tableName: string,
+    columns: string[],
+  ) {
+    if (this.cohortMemberColumnTypeCache)
+      return this.cohortMemberColumnTypeCache;
     const placeholders = columns.map((_, idx) => `$${idx + 3}`).join(',');
     const sql = `SELECT column_name, data_type, udt_name
       FROM information_schema.columns
       WHERE table_schema = $1 AND table_name = $2 AND column_name IN (${placeholders})`;
     try {
-      const result = await this.cohortMemberRepo.query(sql, [schema, tableName, ...columns]);
+      const result = await this.cohortMemberRepo.query(sql, [
+        schema,
+        tableName,
+        ...columns,
+      ]);
       const map: Record<string, { isArray: boolean }> = {};
       for (const row of result) {
         const col = row.column_name as string;
-        const isArray = (row.data_type === 'ARRAY') || (typeof row.udt_name === 'string' && row.udt_name.endsWith('[]'));
+        const isArray =
+          row.data_type === 'ARRAY' ||
+          (typeof row.udt_name === 'string' && row.udt_name.endsWith('[]'));
         map[col] = { isArray };
       }
       this.cohortMemberColumnTypeCache = map;
       return map;
     } catch (err) {
-      this.logger.warn(`Failed to read column types for ${schema}.${tableName}: ${err?.message}`);
+      this.logger.warn(
+        `Failed to read column types for ${schema}.${tableName}: ${err?.message}`,
+      );
       // Fallback: assume non-array
       const map: Record<string, { isArray: boolean }> = {};
       for (const c of columns) map[c] = { isArray: false };
@@ -101,8 +117,6 @@ export class DatabaseService {
     return this.userRepo.delete(data);
   }
 
-
-
   async saveDailyAttendanceData(data: any) {
     return this.dailyAttendanceRepo.save(data);
   }
@@ -110,8 +124,6 @@ export class DatabaseService {
   async deleteDailyAttendanceData(data: any) {
     return this.dailyAttendanceRepo.delete(data);
   }
-
-
 
   async saveEventData(data: any) {
     return this.eventRepo.save(data);
@@ -190,7 +202,11 @@ export class DatabaseService {
 
     const { schema, tableName } = this.cohortMemberRepo.metadata as any;
     const effectiveSchema = schema && schema.length > 0 ? schema : 'public';
-    const colTypes = await this.loadCohortMemberColumnTypes(effectiveSchema, 'CohortMember', entries.map(([c]) => c));
+    const colTypes = await this.loadCohortMemberColumnTypes(
+      effectiveSchema,
+      'CohortMember',
+      entries.map(([c]) => c),
+    );
 
     entries.forEach(([column, value], idx) => {
       const isArrayColumn = colTypes[column]?.isArray ?? false;
@@ -326,20 +342,13 @@ export class DatabaseService {
     attendanceValue: string,
   ) {
     try {
-      // Use database-level upsert with ON CONFLICT to avoid race conditions
-      const baseRecord = {
-        ...attendanceData,
-        [dayColumn]: attendanceValue,
-      };
-
-      // Try to insert first, if conflict occurs, update
       const result = await this.attendanceTrackerRepo
         .createQueryBuilder()
         .insert()
         .into(AttendanceTracker)
-        .values(baseRecord)
+        .values(attendanceData)
         .orUpdate(
-          [dayColumn],
+          [dayColumn as string],
           ['tenantId', 'userId', 'year', 'month', 'contextId'],
         )
         .execute();
@@ -360,15 +369,12 @@ export class DatabaseService {
       });
 
       if (existingRecord) {
-        const updateData = { [dayColumn]: attendanceValue };
-        return this.attendanceTrackerRepo.update(
-          existingRecord.atndId,
-          updateData,
-        );
-      } else {
-        const newRecord = { ...attendanceData, [dayColumn]: attendanceValue };
-        return this.attendanceTrackerRepo.save(newRecord);
+        return this.attendanceTrackerRepo.update(existingRecord.atndId, {
+          [dayColumn]: attendanceData[dayColumn],
+        } as Partial<AttendanceTracker>);
       }
+
+      return this.attendanceTrackerRepo.save(attendanceData);
     }
   }
 
@@ -621,11 +627,13 @@ export class DatabaseService {
 
   async findRegistrationTracker(userId: string, tenantId: string) {
     return this.registrationTrackerRepo.findOne({
-      where: { userId, tenantId }
+      where: { userId, tenantId },
     });
   }
 
-  async upsertRegistrationTracker(registrationData: Partial<RegistrationTracker>) {
+  async upsertRegistrationTracker(
+    registrationData: Partial<RegistrationTracker>,
+  ) {
     try {
       // If roleId is provided, use it in the conflict key
       if (registrationData.roleId) {
@@ -635,7 +643,10 @@ export class DatabaseService {
           .insert()
           .into(RegistrationTracker)
           .values(registrationData)
-          .orUpdate(['platformRegnDate', 'tenantRegnDate', 'isActive', 'Reason'], ['userId', 'tenantId', 'roleId'])
+          .orUpdate(
+            ['platformRegnDate', 'tenantRegnDate', 'isActive', 'Reason'],
+            ['userId', 'tenantId', 'roleId'],
+          )
           .execute();
 
         return result;
@@ -643,10 +654,10 @@ export class DatabaseService {
         // If roleId is not provided, update all records matching userId and tenantId
         // First, find all existing records
         const existingRecords = await this.registrationTrackerRepo.find({
-          where: { 
+          where: {
             userId: registrationData.userId,
-            tenantId: registrationData.tenantId
-          }
+            tenantId: registrationData.tenantId,
+          },
         });
 
         if (existingRecords && existingRecords.length > 0) {
@@ -656,7 +667,7 @@ export class DatabaseService {
             tenantRegnDate: registrationData.tenantRegnDate,
             reason: registrationData.reason,
           };
-          
+
           // Only update platformRegnDate if provided
           if (registrationData.platformRegnDate) {
             updateData.platformRegnDate = registrationData.platformRegnDate;
@@ -664,38 +675,40 @@ export class DatabaseService {
 
           // Update all matching records
           await this.registrationTrackerRepo.update(
-            { 
+            {
               userId: registrationData.userId,
-              tenantId: registrationData.tenantId
+              tenantId: registrationData.tenantId,
             },
-            updateData
+            updateData,
           );
 
           return { affected: existingRecords.length };
         } else {
           // No existing records found, cannot insert without roleId
-          throw new Error('Cannot create registration tracker without roleId. No existing records found to update.');
+          throw new Error(
+            'Cannot create registration tracker without roleId. No existing records found to update.',
+          );
         }
       }
     } catch (error) {
       // Fallback to the original method if the database doesn't support UPSERT
       if (registrationData.roleId) {
         const existingRecord = await this.registrationTrackerRepo.findOne({
-          where: { 
+          where: {
             userId: registrationData.userId,
             tenantId: registrationData.tenantId,
-            roleId: registrationData.roleId
-          }
+            roleId: registrationData.roleId,
+          },
         });
 
         if (existingRecord) {
           return this.registrationTrackerRepo.update(
-            { 
+            {
               userId: registrationData.userId,
               tenantId: registrationData.tenantId,
-              roleId: registrationData.roleId
+              roleId: registrationData.roleId,
             },
-            registrationData
+            registrationData,
           );
         } else {
           return this.registrationTrackerRepo.save(registrationData);
@@ -703,10 +716,10 @@ export class DatabaseService {
       } else {
         // Fallback for updates without roleId
         const existingRecords = await this.registrationTrackerRepo.find({
-          where: { 
+          where: {
             userId: registrationData.userId,
-            tenantId: registrationData.tenantId
-          }
+            tenantId: registrationData.tenantId,
+          },
         });
 
         if (existingRecords && existingRecords.length > 0) {
@@ -715,25 +728,26 @@ export class DatabaseService {
             tenantRegnDate: registrationData.tenantRegnDate,
             reason: registrationData.reason,
           };
-          
+
           if (registrationData.platformRegnDate) {
             updateData.platformRegnDate = registrationData.platformRegnDate;
           }
 
           return this.registrationTrackerRepo.update(
-            { 
+            {
               userId: registrationData.userId,
-              tenantId: registrationData.tenantId
+              tenantId: registrationData.tenantId,
             },
-            updateData
+            updateData,
           );
         } else {
-          throw new Error('Cannot create registration tracker without roleId. No existing records found to update.');
+          throw new Error(
+            'Cannot create registration tracker without roleId. No existing records found to update.',
+          );
         }
       }
     }
   }
-
 
   async updateCourseTrackerStatus(
     params: {
@@ -755,7 +769,9 @@ export class DatabaseService {
       courseId: params.courseId,
     };
 
-    const existing = await this.courseTrackerRepo.findOne({ where: whereCondition });
+    const existing = await this.courseTrackerRepo.findOne({
+      where: whereCondition,
+    });
 
     if (!existing) {
       return { affected: 0 };
@@ -763,42 +779,47 @@ export class DatabaseService {
 
     // Build update payload with all fields
     const updatePayload: Partial<CourseTracker> = {};
-    
+
     if (update.status !== undefined) {
       updatePayload.courseTrackingStatus = update.status;
     }
-    
+
     if (update.createdOn !== undefined && update.createdOn !== null) {
       updatePayload.courseTrackingStartDate = new Date(update.createdOn);
     }
-    
+
     if (update.completedOn !== undefined) {
       updatePayload.courseTrackingEndDate = update.completedOn
         ? new Date(update.completedOn)
-        : null as any;
+        : (null as any);
     }
-    
+
     if (update.certificateId !== undefined) {
       updatePayload.certificateId = update.certificateId || null;
     }
 
-    return this.courseTrackerRepo.update(existing.courseTrackerId, updatePayload);
+    return this.courseTrackerRepo.update(
+      existing.courseTrackerId,
+      updatePayload,
+    );
   }
 
-  async updateUserLastLogin(data: { userId: string; lastLogin?: string | Date }) {
+  async updateUserLastLogin(data: {
+    userId: string;
+    lastLogin?: string | Date;
+  }) {
     try {
       const { userId, lastLogin } = data;
-      
+
       // Convert lastLogin to Date if it's a string
-      const lastLoginDate = lastLogin 
-        ? (typeof lastLogin === 'string' ? new Date(lastLogin) : lastLogin)
+      const lastLoginDate = lastLogin
+        ? typeof lastLogin === 'string'
+          ? new Date(lastLogin)
+          : lastLogin
         : new Date(); // Default to current timestamp if not provided
-      
+
       // Update the user's last login timestamp
-      return this.userRepo.update(
-        { userId },
-        { userLastLogin: lastLoginDate }
-      );
+      return this.userRepo.update({ userId }, { userLastLogin: lastLoginDate });
     } catch (error) {
       console.error('Error updating user last login:', error);
       throw error;
@@ -995,10 +1016,14 @@ export class DatabaseService {
     return this.projectTaskTrackingRepo.save(data);
   }
 
-  async upsertProjectTaskTrackings(trackingData: Partial<ProjectTaskTracking>[]) {
+  async upsertProjectTaskTrackings(
+    trackingData: Partial<ProjectTaskTracking>[],
+  ) {
     try {
       if (!trackingData || trackingData.length === 0) {
-        this.logger.warn('[DatabaseService] No project task tracking data to upsert');
+        this.logger.warn(
+          '[DatabaseService] No project task tracking data to upsert',
+        );
         return { success: true, count: 0, inserted: 0, skipped: 0 };
       }
 
