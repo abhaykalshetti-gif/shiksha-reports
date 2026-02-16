@@ -5,7 +5,7 @@ import { DatabaseService } from '../services/database.service';
 export class CohortMemberHandler {
   private readonly logger = new Logger(CohortMemberHandler.name);
 
-  constructor(private readonly dbService: DatabaseService) {}
+  constructor(private readonly dbService: DatabaseService) { }
 
   async handleCohortMemberUpsert(data: any) {
     try {
@@ -42,11 +42,19 @@ export class CohortMemberHandler {
         cohortMembershipId,
       );
       if (!existingById) {
-        this.logger.warn(
-          `CohortMember not found. Skipping update | cohortMembershipId=${cohortMembershipId}`,
+        await this.dbService.createCohortMemberWithId({
+          cohortMembershipId: cohortMembershipId,
+          userId: userId,
+          cohortId: cohortId,
+          academicYearId: academicYearId,
+          status: status ?? 'active',
+        });
+        this.logger.log(
+          `Created cohort member with ID ${cohortMembershipId}`,
         );
         return;
       }
+
 
       const customFields: any[] = Array.isArray(data?.customFields)
         ? data.customFields
@@ -98,8 +106,7 @@ export class CohortMemberHandler {
 
       if (Object.keys(updates).length === 0) {
         this.logger.debug(
-          `No updates to perform | cohortMembershipId=${cohortMembershipId} | status=${status || 'none'} | customFieldsLen=${customFields.length} | fieldsKeys=${
-            data?.fields ? Object.keys(data.fields).join(',') : 'none'
+          `No updates to perform | cohortMembershipId=${cohortMembershipId} | status=${status || 'none'} | customFieldsLen=${customFields.length} | fieldsKeys=${data?.fields ? Object.keys(data.fields).join(',') : 'none'
           }`,
         );
         return;
