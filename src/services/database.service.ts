@@ -187,7 +187,7 @@ export class DatabaseService {
     updates: Record<string, string | null | undefined>,
   ) {
     // Only allow specific columns to be updated
-    const allowed = new Set(['Subject', 'Fees', 'Registration', 'Board', 'MemberStatus']);
+    const allowed = new Set(['Subject', 'Fees', 'Registration', 'Board', 'MemberStatus', 'CohortID', 'UserID', 'AcademicYearID', 'Slot']);
     const entries = Object.entries(updates).filter(([k, v]) =>
       allowed.has(k),
     );
@@ -210,7 +210,7 @@ export class DatabaseService {
 
     entries.forEach(([column, value], idx) => {
       const isArrayColumn = colTypes[column]?.isArray ?? false;
-      
+
       if (isArrayColumn) {
         // For array columns, wrap the value in PostgreSQL array literal format
         // Store the original value as a single-element array to preserve it exactly as received
@@ -594,7 +594,7 @@ export class DatabaseService {
           // Only update if status is different or time spent has changed
           if (
             existingTracker.contentTrackingStatus !==
-              contentTrackerData.contentTrackingStatus ||
+            contentTrackerData.contentTrackingStatus ||
             existingTracker.timeSpent !== contentTrackerData.timeSpent
           ) {
             const updateResult = await this.contentTrackerRepo.update(

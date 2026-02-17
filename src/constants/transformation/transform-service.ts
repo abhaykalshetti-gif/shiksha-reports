@@ -322,7 +322,7 @@ export class TransformService {
         userSupervisors: extractCustomFieldById(
           '26c55f7f-c691-440d-8c7f-88480c72f07b',
         ),
-        
+
         userDistrictId: extractCustomFieldById(
           'd4ad6f2a-f4b3-4f66-b1be-fcbe8ff607f3',
         ) || extractCustomFieldById(
@@ -363,12 +363,66 @@ export class TransformService {
 
       if (data.cohorts && Array.isArray(data.cohorts)) {
         for (const cohort of data.cohorts) {
+          const c = cohort as any;
+          // Handle customFields whether it's an array or single object
+          let customFields: any[] = [];
+          if (Array.isArray(c.customFields)) {
+            customFields = c.customFields;
+          } else if (c.customFields) {
+            customFields = [c.customFields];
+          }
+
+          const extractedFields: Record<string, any> = {};
+
+          const wantedLabels = new Map<string, string>([
+            ['subject', 'Subject'],
+            ['fees', 'Fees'],
+            ['registration', 'Registration'],
+            ['board', 'Board'],
+            ['slots', 'Slot'],
+          ]);
+
+          const wantedIds = new Map<string, string>([
+            ['f93c0ac3-f827-4794-9457-441fa1057b42', 'Board'],
+            ['69a9dba2-e05e-40cd-a39c-047b9b676b5c', 'Subject'],
+            ['f3658b23-1394-48a9-afc5-7589874465af', 'Slot'],
+          ]);
+
+          for (const field of customFields) {
+            // Check by ID
+            if (field?.fieldId && wantedIds.has(field.fieldId)) {
+              const key = wantedIds.get(field.fieldId);
+              extractedFields[key] = field.value;
+              continue;
+            }
+
+            // Check by Label
+            const label = (field?.label || '').toString().trim().toLowerCase();
+            if (wantedLabels.has(label)) {
+              const key = wantedLabels.get(label);
+
+              let value = field?.value;
+              if (value === undefined || value === null) {
+                if (Array.isArray(field.selectedValues)) {
+                  value = field.selectedValues
+                    .map((v: any) =>
+                      v?.value ?? v?.label ?? v?.name ?? v?.id ?? (typeof v === 'string' ? v : null)
+                    )
+                    .filter((v: any) => v != null)
+                    .join(',');
+                }
+              }
+              extractedFields[key] = value;
+            }
+          }
+
           const cohortMember = {
             UserID: userId,
             CohortID: cohort.batchId,
             MemberStatus: cohort.cohortMemberStatus || 'active',
             AcademicYearID: cohort.academicYearId,
             CohortMemberID: cohort.cohortMemberId,
+            ...extractedFields,
           };
           cohortMembers.push(cohortMember);
         }
@@ -610,19 +664,19 @@ export class TransformService {
 
       // Format day as two-digit string for column mapping
       const dayColumn = `day${day.toString().padStart(2, '0')}`;
-  const istFormatter = new Intl.DateTimeFormat('en-GB', {
-  timeZone: 'Asia/Kolkata',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-  hour: '2-digit',
-  minute: '2-digit',
-  second: '2-digit',
-  fractionalSecondDigits: 3, // milliseconds
-  hour12: false
-});
+      const istFormatter = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        fractionalSecondDigits: 3, // milliseconds
+        hour12: false
+      });
 
-const parts = istFormatter.formatToParts(new Date());
+      const parts = istFormatter.formatToParts(new Date());
 
       const dayAttendance = {
         scope: data.scope,
@@ -634,7 +688,7 @@ const parts = istFormatter.formatToParts(new Date());
         absentReason: data.absentReason,
         validLocation: data.validLocation,
        timestamp :`${parts.find(p => p.type === 'year').value}-${parts.find(p => p.type === 'month').value}-${parts.find(p => p.type === 'day').value} ` +
-                  `${parts.find(p => p.type === 'hour').value}:${parts.find(p => p.type === 'minute').value}:${parts.find(p => p.type === 'second').value}.${parts.find(p => p.type === 'fractionalSecond').value}`,
+          `${parts.find(p => p.type === 'hour').value}:${parts.find(p => p.type === 'minute').value}:${parts.find(p => p.type === 'second').value}.${parts.find(p => p.type === 'fractionalSecond').value}`,
         ...data.metaData,
 
       };
@@ -826,21 +880,21 @@ const parts = istFormatter.formatToParts(new Date());
           }
 
             if (tenant.roleId ) {
-            
-              const registrationTracker: Partial<RegistrationTracker> = {
-                userId: data.userId,
-                roleId: tenant.roleId,
-                tenantId: tenant.tenantId,
-                platformRegnDate: platformRegnDate,
-                tenantRegnDate: platformRegnDate, // Same as platform date for new registrations
-                isActive: true,
-                // Include reason if provided (from tenant, role, or data level)
-                reason:
-                  (tenant as any).reason ||
-                  (data as any).reason ||
-                  undefined,
-              };
-              registrationTrackers.push(registrationTracker)
+
+            const registrationTracker: Partial<RegistrationTracker> = {
+              userId: data.userId,
+              roleId: tenant.roleId,
+              tenantId: tenant.tenantId,
+              platformRegnDate: platformRegnDate,
+              tenantRegnDate: platformRegnDate, // Same as platform date for new registrations
+              isActive: true,
+              // Include reason if provided (from tenant, role, or data level)
+              reason:
+                (tenant as any).reason ||
+                (data as any).reason ||
+                undefined,
+            };
+            registrationTrackers.push(registrationTracker)
           }
         }
       }
@@ -934,28 +988,28 @@ const parts = istFormatter.formatToParts(new Date());
   //     // Transform date fields
   //     const transformDate = (dateValue: string | Date | null | undefined): Date | null => {
   //       if (!dateValue) return null;
-        
+
   //       if (typeof dateValue === 'string') {
   //         const parsed = new Date(dateValue);
   //         return isNaN(parsed.getTime()) ? null : parsed;
   //       }
-        
+
   //       if (dateValue instanceof Date) {
   //         return isNaN(dateValue.getTime()) ? null : dateValue;
   //       }
-        
+
   //       return null;
   //     };
 
   //     // Transform text fields to handle arrays and objects
   //     const transformText = (value: any): string | null => {
   //       if (!value) return null;
-        
+
   //       if (typeof value === 'string') return value;
   //       if (typeof value === 'number') return value.toString();
   //       if (Array.isArray(value)) return value.join(', ');
   //       if (typeof value === 'object') return JSON.stringify(value);
-        
+
   //       return null;
   //     };
 
@@ -1051,7 +1105,7 @@ const parts = istFormatter.formatToParts(new Date());
       throw error;
     }
   }
-// ...existing code...
+  // ...existing code...
 
   /**
    * Transform external content data to Content entity format
