@@ -67,6 +67,14 @@ export class User {
   preferredModeOfLearning?: string;
 
   @Column({
+    name: 'UserInterestedToJoin',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
+  interestedToJoin?: string;
+
+  @Column({
     name: 'UserMotherName',
     type: 'varchar',
     length: 150,

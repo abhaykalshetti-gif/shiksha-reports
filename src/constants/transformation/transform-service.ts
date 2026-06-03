@@ -178,7 +178,9 @@ export class TransformService {
         preferredModeOfLearning: extractCustomField(
           'WHAT_IS_YOUR_PREFERRED_MODE_OF_LEARNING',
         ),
-
+        interestedToJoin: extractCustomField(
+          'INTERESTED_TO_JOIN',
+        ),
         // Additional fields from new structure
         centerId: extractCustomField('CENTER'),
         phoneTypeAccessible: extractCustomField('TYPE_OF_PHONE_ACCESSIBLE'),
