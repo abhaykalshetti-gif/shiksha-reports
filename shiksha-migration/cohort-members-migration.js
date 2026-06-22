@@ -20,6 +20,7 @@ async function migrateCohortMembers() {
         cm."cohortId",
         cm."userId",
         cm.status,
+        cm."statusReason",
         cm."cohortAcademicYearId",
         cm."createdAt",
         cm."updatedAt",
@@ -27,12 +28,16 @@ async function migrateCohortMembers() {
       FROM public."CohortMembers" cm
       LEFT JOIN public."CohortAcademicYear" cay
         ON cm."cohortAcademicYearId" = cay."cohortAcademicYearId"
+      ORDER BY cm."createdAt" desc;
     `;
 
     const res = await sourceClient.query(query);
     console.log(`[COHORT MEMBERS] Found ${res.rows.length} cohort member records to migrate.`);
+    let count = 0;
     for (const row of res.rows) {
       await upsertCohortMember(destClient, row);
+      count++;
+      console.log("[COHORT MEMBERS] Upserted cohort member", count, "of", res.rows.length);
       // break;
       // Uncomment to test single record
       // console.log('[COHORT MEMBERS] 🛑 Stopping after one record for testing');
@@ -53,14 +58,15 @@ async function upsertCohortMember(destClient, row) {
   try {
     const upsert = `
       INSERT INTO public."CohortMember" (
-        "CohortMemberID", "CohortID", "UserID", "MemberStatus", "AcademicYearID","CreatedAt","UpdatedAt"
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+        "CohortMemberID", "CohortID", "UserID", "MemberStatus", "StatusReason", "AcademicYearID","CreatedAt","UpdatedAt"
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       ON CONFLICT ("CohortMemberID") DO UPDATE SET
         "CohortID" = $2,
         "UserID" = $3,
         "MemberStatus" = $4,
-        "AcademicYearID" = $5,
-        "UpdatedAt" = $7
+        "StatusReason" = $5,
+        "AcademicYearID" = $6,
+        "UpdatedAt" = $8
     `;
 
     const values = [
@@ -68,6 +74,7 @@ async function upsertCohortMember(destClient, row) {
       row.cohortId,
       row.userId,
       row.status || null,
+      row.statusReason || null,
       row.academicYearId || null,
       row.createdAt,
       row.updatedAt
