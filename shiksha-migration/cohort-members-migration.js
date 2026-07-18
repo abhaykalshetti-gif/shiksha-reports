@@ -28,11 +28,12 @@ async function migrateCohortMembers() {
       FROM public."CohortMembers" cm
       LEFT JOIN public."CohortAcademicYear" cay
         ON cm."cohortAcademicYearId" = cay."cohortAcademicYearId"
-      ORDER BY cm."createdAt" desc;
+      ORDER BY cm."createdAt";
     `;
 
     const res = await sourceClient.query(query);
     console.log(`[COHORT MEMBERS] Found ${res.rows.length} cohort member records to migrate.`);
+
     let count = 0;
     for (const row of res.rows) {
       await upsertCohortMember(destClient, row);
