@@ -234,6 +234,40 @@ export class UserHandler {
     }
   }
 
+  async handleUserTenantMappingDelete(data: any) {
+    try {
+      // Validate required fields
+      validateString(data.userId, 'userId');
+      validateString(data.tenantId, 'tenantId');
+
+      // Extract optional roleId for targeted deletion
+      const roleId = data.role?.roleId || data.roleId;
+
+      const deletePayload: { userId: string; tenantId: string; roleId?: string } = {
+        userId: data.userId,
+        tenantId: data.tenantId,
+      };
+
+      if (roleId) {
+        deletePayload.roleId = roleId;
+      }
+
+      const result = await this.dbService.deleteRegistrationTrackerData(deletePayload);
+
+      console.log(
+        `[UserHandler] User tenant mapping deleted: userId=${data.userId}, tenantId=${data.tenantId}, roleId=${roleId || 'all roles'}, affected=${result?.affected ?? 0}`
+      );
+
+      return { success: true, affected: result?.affected ?? 0 };
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        throw new Error(`Validation failed: ${error.message}`);
+      }
+      console.error('[UserHandler] Error handling user tenant mapping delete:', error);
+      throw error;
+    }
+  }
+
   async handleUserLastLogin(data: LastLoginEventData) {
     try {
       // Validate required fields

@@ -684,6 +684,23 @@ export class DatabaseService {
     });
   }
 
+  async deleteRegistrationTrackerData(data: {
+    userId: string;
+    tenantId: string;
+    roleId?: string;
+  }) {
+    const whereCondition: any = {
+      userId: data.userId,
+      tenantId: data.tenantId,
+    };
+
+    if (data.roleId) {
+      whereCondition.roleId = data.roleId;
+    }
+
+    return this.registrationTrackerRepo.delete(whereCondition);
+  }
+
   async upsertRegistrationTracker(registrationData: Partial<RegistrationTracker>) {
     try {
       // If roleId is provided, use it in the conflict key

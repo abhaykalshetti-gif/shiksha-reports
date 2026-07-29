@@ -235,6 +235,10 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
 
       case 'USER_TENANT_MAPPING':
         return this.userHandler.handleUserTenantMapping(data);
+
+      case 'USER_TENANT_MAPPING_DELETE':
+        return this.userHandler.handleUserTenantMappingDelete(data);
+
       case 'USER_LOGIN':
         return this.userHandler.handleUserLastLogin(data);
 
