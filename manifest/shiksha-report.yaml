@@ -29,7 +29,7 @@ spec:
             - containerPort: 4000
 
           envFrom:
-            - configMapRef:
+            - secretRef:
                 name: shiksha-reports-service-config
 
           resources: {}
