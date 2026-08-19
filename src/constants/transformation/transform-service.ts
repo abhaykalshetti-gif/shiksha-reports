@@ -537,6 +537,7 @@ export class TransformService {
         tenantId: data.tenantId,
         contentId: data.contentId,
         courseId: data.courseId,
+        unitId: data.unitId,
         contentName: contentName,
         contentType: data.contentType,
         contentTrackingStatus: contentTrackingStatus,

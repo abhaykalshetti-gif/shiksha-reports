@@ -17,6 +17,9 @@ export class ContentTracker {
   @Column({ name: 'CourseID', type: 'varchar', length: 255, nullable: true })
   courseId?: string;
 
+  @Column({ name: 'UnitID', type: 'varchar', length: 255, nullable: true })
+  unitId?: string;
+
   @Column({
     name: 'ContentName',
     type: 'varchar',

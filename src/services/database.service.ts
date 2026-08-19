@@ -647,6 +647,7 @@ export class DatabaseService {
             'contentType',
             'contentTrackingStatus',
             'timeSpent',
+            'unitId',
             'updatedAt',
           ],
           ['userId', 'contentId', 'tenantId'],

@@ -137,6 +137,7 @@ export interface ContentTrackingData {
   tenantId: string;
   contentId: string;
   courseId?: string;
+  unitId?: string;
   contentType?: string;
   createdOn?: string;
   updatedOn?: string;

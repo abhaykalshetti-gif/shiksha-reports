@@ -1,11 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DatabaseService } from '../services/database.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { CohortMember } from 'src/entities/cohort-member.entity';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class CohortMemberHandler {
   private readonly logger = new Logger(CohortMemberHandler.name);
+  @InjectRepository(CohortMember)
+  private cohortMemberRepo: Repository<CohortMember>
 
-  constructor(private readonly dbService: DatabaseService) {}
+  constructor(private readonly dbService: DatabaseService) { }
 
   async handleCohortMemberCreated(data: any) {
     try {
@@ -70,9 +75,14 @@ export class CohortMemberHandler {
       const cohortId: string | undefined = data?.cohortId || data?.CohortID;
       const status: string | undefined = data?.status || data?.MemberStatus;
       const statusReason: string | null | undefined =
-      data?.statusReason !== undefined ? data.statusReason : data?.StatusReason;
+        data?.statusReason !== undefined ? data.statusReason : data?.StatusReason;
       const academicYearId: string | undefined =
         data?.academicYearId || data?.AcademicYearID;
+
+      const sql = `UPDATE "public"."CohortMember" SET "UserID"=$1 
+      where "CohortMemberID"=$2`
+
+      await this.cohortMemberRepo.query(sql, [userId, cohortMembershipId]);
 
       // If cohortMembershipId not provided, try to resolve or create using (userId, cohortId)
       if (!cohortMembershipId && userId && cohortId) {
@@ -126,6 +136,7 @@ export class CohortMemberHandler {
         updates['StatusReason'] = statusReason;
       }
 
+      updates['UserId'] = userId;
       // Path A: Support a direct fields map: { fields: { Subject: 'x', Fees: 'y', ... } }
       if (
         data?.fields &&
@@ -157,8 +168,7 @@ export class CohortMemberHandler {
 
       if (Object.keys(updates).length === 0) {
         this.logger.debug(
-          `No updates to perform | cohortMembershipId=${cohortMembershipId} | status=${status || 'none'} | customFieldsLen=${customFields.length} | fieldsKeys=${
-            data?.fields ? Object.keys(data.fields).join(',') : 'none'
+          `No updates to perform | cohortMembershipId=${cohortMembershipId} | status=${status || 'none'} | customFieldsLen=${customFields.length} | fieldsKeys=${data?.fields ? Object.keys(data.fields).join(',') : 'none'
           }`,
         );
         return;
