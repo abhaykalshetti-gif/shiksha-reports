@@ -34,6 +34,7 @@ async function migrateRegistrationTracker() {
       WHERE utm."userId" IS NOT NULL
         AND utm."tenantId" IS NOT NULL
         AND urm."roleId" IS NOT NULL
+      AND utm."userId"= '8560b566-3c1c-4f00-a2e6-f507f067afc5'
     `;
 
     const res = await sourceClient.query(query);
