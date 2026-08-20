@@ -21,6 +21,7 @@ import { Content } from 'src/entities/content.entity';
 import { SurveyList } from 'src/entities/survey-list.entity';
 import { SurveyTracker } from 'src/entities/survey-tracker.entity';
 import { CohortAcademicYear } from 'src/entities/cohort-academic-year.entity';
+import { Tenant } from 'src/entities/tenant.entity';
 
 @Injectable()
 export class DatabaseService {
@@ -63,6 +64,8 @@ export class DatabaseService {
     private surveyTrackerRepo: Repository<SurveyTracker>,
     @InjectRepository(CohortAcademicYear)
     private cohortAcademicYearRepo: Repository<CohortAcademicYear>,
+    @InjectRepository(Tenant)
+    private tenantRepo: Repository<Tenant>,
   ) { }
 
   private readonly logger = new Logger(DatabaseService.name);
@@ -351,7 +354,7 @@ export class DatabaseService {
         const updatedMember = await this.cohortMemberRepo.findOne({
           where: {
             CohortMemberID: existingMember.CohortMemberID,
-          }, 
+          },
         });
         return { action: 'updated', data: updatedMember };
       } else {
@@ -670,7 +673,7 @@ export class DatabaseService {
           // Only update if status is different or time spent has changed
           if (
             existingTracker.contentTrackingStatus !==
-             contentTrackerData.contentTrackingStatus ||
+            contentTrackerData.contentTrackingStatus ||
             existingTracker.timeSpent !== contentTrackerData.timeSpent
           ) {
             const updateResult = await this.contentTrackerRepo.update(
@@ -709,27 +712,37 @@ export class DatabaseService {
 
   async upsertRegistrationTracker(registrationData: Partial<RegistrationTracker>) {
     try {
-      // Look up the existing record for this user + tenant (+ role if provided)
-      const existingRecord = await this.registrationTrackerRepo.findOne({
-        where: {
-          userId: registrationData.userId,
-          tenantId: registrationData.tenantId,
-          ...(registrationData.roleId ? { roleId: registrationData.roleId } : {}),
-        },
-      });
+      if (registrationData.roleId) {
+        // ── BRANCH 1: roleId IS provided ──────────────────────────────────────
+        // Fetch all RegistrationTracker records for this user + role.
+        const allUserRecords = await this.registrationTrackerRepo.find({
+          where: {
+            userId: registrationData.userId,
+          },
+        });
 
-      if (existingRecord) {
-        // CASE 1: Existing record has parentId === null → it is the root tenant record → UPDATE
-        // CASE 2: Existing record's tenantId matches the incoming tenantId → it is the parent tenant → UPDATE
-        if (
-          existingRecord.parentId === null ||
-          existingRecord.tenantId === registrationData.tenantId
-        ) {
+        // Find the record whose tenant is a root tenant (Tenant.parentId === null)
+        let rootTenantRecord: RegistrationTracker | null = null;
+
+        for (const record of allUserRecords) {
+          const tenant = await this.tenantRepo.findOne({
+            where: { tenantId: record.tenantId },
+          });
+
+          if (tenant && tenant.parentId === null) {
+            rootTenantRecord = record;
+            break;
+          }
+        }
+
+        if (rootTenantRecord) {
+          // Scenario 1: Root/Parent tenant mapping found → UPDATE it
           console.log(
-            `[DatabaseService] Updating existing registration tracker (${existingRecord.parentId === null ? 'root tenant' : 'parent tenant'}): userId=${registrationData.userId}, tenantId=${registrationData.tenantId}`,
+            `[DatabaseService] [WithRole] Root/Parent tenant mapping found (regId=${rootTenantRecord.regId}). Updating: userId=${registrationData.userId}, roleId=${registrationData.roleId}, newTenantId=${registrationData.tenantId}`,
           );
 
           const updateData: Partial<RegistrationTracker> = {
+            tenantId: registrationData.tenantId,
             status: registrationData.status,
             tenantRegnDate: registrationData.tenantRegnDate,
             reason: registrationData.reason,
@@ -740,34 +753,72 @@ export class DatabaseService {
           }
 
           await this.registrationTrackerRepo.update(
-            { regId: existingRecord.regId },
+            { regId: rootTenantRecord.regId },
             updateData,
           );
 
-          return { action: 'updated', regId: existingRecord.regId };
+          return { action: 'updated', regId: rootTenantRecord.regId };
         } else {
-          // CASE 3: Existing record belongs to a different (child) tenant → CREATE a new record
+          // Scenario 2: No root/parent tenant mapping found → CREATE a new record
           console.log(
-            `[DatabaseService] Existing record belongs to a different tenant. Creating new registration tracker: userId=${registrationData.userId}, tenantId=${registrationData.tenantId}`,
+            `[DatabaseService] [WithRole] No root/parent tenant mapping found. Creating new: userId=${registrationData.userId}, roleId=${registrationData.roleId}, tenantId=${registrationData.tenantId}`,
           );
 
           const newRecord = await this.registrationTrackerRepo.save(registrationData);
           return { action: 'created', data: newRecord };
         }
       } else {
-        // No existing record found → CREATE a new one (requires roleId)
-        if (!registrationData.roleId) {
-          throw new Error(
-            'Cannot create registration tracker without roleId. No existing record found to update.',
-          );
+        // ── BRANCH 2: roleId is NOT provided ──────────────────────────────────
+        // Fetch all RegistrationTracker records for this user (any role).
+        const allUserRecords = await this.registrationTrackerRepo.find({
+          where: {
+            userId: registrationData.userId,
+          },
+        });
+
+        // Find the record whose tenant is a root tenant (Tenant.parentId === null)
+        let rootTenantRecord: RegistrationTracker | null = null;
+
+        for (const record of allUserRecords) {
+          const tenant = await this.tenantRepo.findOne({
+            where: { tenantId: record.tenantId },
+          });
+
+          if (tenant && tenant.parentId === null) {
+            rootTenantRecord = record;
+            break;
+          }
         }
 
-        console.log(
-          `[DatabaseService] No existing record found. Creating new registration tracker: userId=${registrationData.userId}, tenantId=${registrationData.tenantId}`,
-        );
+        if (rootTenantRecord) {
+          // Scenario 1: Root/Parent tenant mapping found → UPDATE it
+          console.log(
+            `[DatabaseService] [NoRole] Root/Parent tenant mapping found (regId=${rootTenantRecord.regId}). Updating: userId=${registrationData.userId}, newTenantId=${registrationData.tenantId}`,
+          );
 
-        const newRecord = await this.registrationTrackerRepo.save(registrationData);
-        return { action: 'created', data: newRecord };
+          const updateData: Partial<RegistrationTracker> = {
+            tenantId: registrationData.tenantId,
+            status: registrationData.status,
+            tenantRegnDate: registrationData.tenantRegnDate,
+            reason: registrationData.reason,
+          };
+
+          if (registrationData.platformRegnDate) {
+            updateData.platformRegnDate = registrationData.platformRegnDate;
+          }
+
+          await this.registrationTrackerRepo.update(
+            { regId: rootTenantRecord.regId },
+            updateData,
+          );
+
+          return { action: 'updated', regId: rootTenantRecord.regId };
+        } else {
+          // Scenario 2: No root/parent tenant mapping found and no roleId to create one
+          throw new Error(
+            'Cannot create registration tracker without roleId. No root/parent tenant mapping found to update.',
+          );
+        }
       }
     } catch (error) {
       console.error('[DatabaseService] Error in upsertRegistrationTracker:', error);

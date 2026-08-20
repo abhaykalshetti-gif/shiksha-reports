@@ -42,6 +42,7 @@ import { SurveyList } from './entities/survey-list.entity';
 import { SurveyTracker } from './entities/survey-tracker.entity';
 import { CohortAcademicYear } from './entities/cohort-academic-year.entity';
 import { CohortAcademicYearHandler } from './handlers/cohort-academic-year.handler';
+import { Tenant } from './entities/tenant.entity';
 
 @Module({
   imports: [
@@ -93,6 +94,7 @@ import { CohortAcademicYearHandler } from './handlers/cohort-academic-year.handl
       ProjectTaskTracking, // Add ProjectTaskTracking entity for tracking completed tasks
       SurveyList,
       SurveyTracker,
+      Tenant,
       CohortAcademicYear,
     ]),
   ],
@@ -120,4 +122,4 @@ import { CohortAcademicYearHandler } from './handlers/cohort-academic-year.handl
     CronJobService,
   ],
 })
-export class AppModule {}
+export class AppModule { }
