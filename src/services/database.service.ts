@@ -709,110 +709,69 @@ export class DatabaseService {
 
   async upsertRegistrationTracker(registrationData: Partial<RegistrationTracker>) {
     try {
-      // If roleId is provided, use it in the conflict key
-      if (registrationData.roleId) {
-        // Use database-level upsert with ON CONFLICT to avoid race conditions
-        const result = await this.registrationTrackerRepo
-          .createQueryBuilder()
-          .insert()
-          .into(RegistrationTracker)
-          .values(registrationData)
-          .orUpdate(['platformRegnDate', 'tenantRegnDate', 'status', 'Reason'], ['userId', 'tenantId', 'roleId'])
-          .execute();
+      // Look up the existing record for this user + tenant (+ role if provided)
+      const existingRecord = await this.registrationTrackerRepo.findOne({
+        where: {
+          userId: registrationData.userId,
+          tenantId: registrationData.tenantId,
+          ...(registrationData.roleId ? { roleId: registrationData.roleId } : {}),
+        },
+      });
 
-        return result;
-      } else {
-        // If roleId is not provided, update all records matching userId and tenantId
-        // First, find all existing records
-        const existingRecords = await this.registrationTrackerRepo.find({
-          where: { 
-            userId: registrationData.userId,
-            tenantId: registrationData.tenantId
-          }
-        });
+      if (existingRecord) {
+        // CASE 1: Existing record has parentId === null → it is the root tenant record → UPDATE
+        // CASE 2: Existing record's tenantId matches the incoming tenantId → it is the parent tenant → UPDATE
+        if (
+          existingRecord.parentId === null ||
+          existingRecord.tenantId === registrationData.tenantId
+        ) {
+          console.log(
+            `[DatabaseService] Updating existing registration tracker (${existingRecord.parentId === null ? 'root tenant' : 'parent tenant'}): userId=${registrationData.userId}, tenantId=${registrationData.tenantId}`,
+          );
 
-        if (existingRecords && existingRecords.length > 0) {
-          // Update all matching records
           const updateData: Partial<RegistrationTracker> = {
             status: registrationData.status,
             tenantRegnDate: registrationData.tenantRegnDate,
             reason: registrationData.reason,
           };
 
-          // Only update platformRegnDate if provided
           if (registrationData.platformRegnDate) {
             updateData.platformRegnDate = registrationData.platformRegnDate;
           }
 
-          // Update all matching records
           await this.registrationTrackerRepo.update(
-            {
-              userId: registrationData.userId,
-              tenantId: registrationData.tenantId
-            },
-            updateData
+            { regId: existingRecord.regId },
+            updateData,
           );
 
-          return { affected: existingRecords.length };
+          return { action: 'updated', regId: existingRecord.regId };
         } else {
-          // No existing records found, cannot insert without roleId
-          throw new Error('Cannot create registration tracker without roleId. No existing records found to update.');
+          // CASE 3: Existing record belongs to a different (child) tenant → CREATE a new record
+          console.log(
+            `[DatabaseService] Existing record belongs to a different tenant. Creating new registration tracker: userId=${registrationData.userId}, tenantId=${registrationData.tenantId}`,
+          );
+
+          const newRecord = await this.registrationTrackerRepo.save(registrationData);
+          return { action: 'created', data: newRecord };
         }
+      } else {
+        // No existing record found → CREATE a new one (requires roleId)
+        if (!registrationData.roleId) {
+          throw new Error(
+            'Cannot create registration tracker without roleId. No existing record found to update.',
+          );
+        }
+
+        console.log(
+          `[DatabaseService] No existing record found. Creating new registration tracker: userId=${registrationData.userId}, tenantId=${registrationData.tenantId}`,
+        );
+
+        const newRecord = await this.registrationTrackerRepo.save(registrationData);
+        return { action: 'created', data: newRecord };
       }
     } catch (error) {
-      // Fallback to the original method if the database doesn't support UPSERT
-      if (registrationData.roleId) {
-        const existingRecord = await this.registrationTrackerRepo.findOne({
-          where: {
-            userId: registrationData.userId,
-            tenantId: registrationData.tenantId,
-            roleId: registrationData.roleId
-          }
-        });
-
-        if (existingRecord) {
-          return this.registrationTrackerRepo.update(
-            {
-              userId: registrationData.userId,
-              tenantId: registrationData.tenantId,
-              roleId: registrationData.roleId
-            },
-            registrationData
-          );
-        } else {
-          return this.registrationTrackerRepo.save(registrationData);
-        }
-      } else {
-        // Fallback for updates without roleId
-        const existingRecords = await this.registrationTrackerRepo.find({
-          where: {
-            userId: registrationData.userId,
-            tenantId: registrationData.tenantId
-          }
-        });
-
-        if (existingRecords && existingRecords.length > 0) {
-          const updateData: Partial<RegistrationTracker> = {
-            status: registrationData.status,
-            tenantRegnDate: registrationData.tenantRegnDate,
-            reason: registrationData.reason,
-          };
-
-          if (registrationData.platformRegnDate) {
-            updateData.platformRegnDate = registrationData.platformRegnDate;
-          }
-
-          return this.registrationTrackerRepo.update(
-            {
-              userId: registrationData.userId,
-              tenantId: registrationData.tenantId
-            },
-            updateData
-          );
-        } else {
-          throw new Error('Cannot create registration tracker without roleId. No existing records found to update.');
-        }
-      }
+      console.error('[DatabaseService] Error in upsertRegistrationTracker:', error);
+      throw error;
     }
   }
 
