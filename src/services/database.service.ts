@@ -711,13 +711,13 @@ export class DatabaseService {
   }
 
   async upsertRegistrationTracker(registrationData: Partial<RegistrationTracker>) {
+    console.log(registrationData)
     try {
       if (registrationData.roleId) {
-        // ── BRANCH 1: roleId IS provided ──────────────────────────────────────
-        // Fetch all RegistrationTracker records for this user + role.
         const allUserRecords = await this.registrationTrackerRepo.find({
           where: {
             userId: registrationData.userId,
+            roleId: registrationData.roleId
           },
         });
 
@@ -759,13 +759,47 @@ export class DatabaseService {
 
           return { action: 'updated', regId: rootTenantRecord.regId };
         } else {
-          // Scenario 2: No root/parent tenant mapping found → CREATE a new record
-          console.log(
-            `[DatabaseService] [WithRole] No root/parent tenant mapping found. Creating new: userId=${registrationData.userId}, roleId=${registrationData.roleId}, tenantId=${registrationData.tenantId}`,
-          );
+          // Scenario 2: No root/parent tenant mapping found
+          // Before creating, check if a record already exists for this exact (userId, tenantId, roleId)
+          const exactExistingRecord = await this.registrationTrackerRepo.findOne({
+            where: {
+              userId: registrationData.userId,
+              tenantId: registrationData.tenantId,
+              roleId: registrationData.roleId,
+            },
+          });
 
-          const newRecord = await this.registrationTrackerRepo.save(registrationData);
-          return { action: 'created', data: newRecord };
+          if (exactExistingRecord) {
+            // Record exists for this user+tenant+role → UPDATE it
+            console.log(
+              `[DatabaseService] [WithRole] Exact record found (regId=${exactExistingRecord.regId}). Updating: userId=${registrationData.userId}, roleId=${registrationData.roleId}, tenantId=${registrationData.tenantId}`,
+            );
+
+            const updateData: Partial<RegistrationTracker> = {
+              status: registrationData.status,
+              tenantRegnDate: registrationData.tenantRegnDate,
+              reason: registrationData.reason,
+            };
+
+            if (registrationData.platformRegnDate) {
+              updateData.platformRegnDate = registrationData.platformRegnDate;
+            }
+
+            await this.registrationTrackerRepo.update(
+              { regId: exactExistingRecord.regId },
+              updateData,
+            );
+
+            return { action: 'updated', regId: exactExistingRecord.regId };
+          } else {
+            // No existing record at all → CREATE a new one
+            console.log(
+              `[DatabaseService] [WithRole] No existing record found. Creating new: userId=${registrationData.userId}, roleId=${registrationData.roleId}, tenantId=${registrationData.tenantId}`,
+            );
+
+            const newRecord = await this.registrationTrackerRepo.save(registrationData);
+            return { action: 'created', data: newRecord };
+          }
         }
       } else {
         // ── BRANCH 2: roleId is NOT provided ──────────────────────────────────
