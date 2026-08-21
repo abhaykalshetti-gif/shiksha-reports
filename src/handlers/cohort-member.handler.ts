@@ -1,14 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DatabaseService } from '../services/database.service';
-import { InjectRepository } from '@nestjs/typeorm';
-import { CohortMember } from 'src/entities/cohort-member.entity';
-import { Repository } from 'typeorm';
 
 @Injectable()
 export class CohortMemberHandler {
   private readonly logger = new Logger(CohortMemberHandler.name);
-  @InjectRepository(CohortMember)
-  private cohortMemberRepo: Repository<CohortMember>
 
   constructor(private readonly dbService: DatabaseService) { }
 
@@ -79,11 +74,6 @@ export class CohortMemberHandler {
       const academicYearId: string | undefined =
         data?.academicYearId || data?.AcademicYearID;
 
-      const sql = `UPDATE "public"."CohortMember" SET "UserID"=$1 
-      where "CohortMemberID"=$2`
-
-      await this.cohortMemberRepo.query(sql, [userId, cohortMembershipId]);
-
       // If cohortMembershipId not provided, try to resolve or create using (userId, cohortId)
       if (!cohortMembershipId && userId && cohortId) {
         const existing = await this.dbService.findCohortMember(
@@ -136,7 +126,6 @@ export class CohortMemberHandler {
         updates['StatusReason'] = statusReason;
       }
 
-      updates['UserId'] = userId;
       // Path A: Support a direct fields map: { fields: { Subject: 'x', Fees: 'y', ... } }
       if (
         data?.fields &&
