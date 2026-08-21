@@ -848,10 +848,35 @@ export class DatabaseService {
 
           return { action: 'updated', regId: rootTenantRecord.regId };
         } else {
-          // Scenario 2: No root/parent tenant mapping found and no roleId to create one
-          throw new Error(
-            'Cannot create registration tracker without roleId. No root/parent tenant mapping found to update.',
-          );
+          const existingRecords = await this.registrationTrackerRepo.find({
+            where: {
+              userId: registrationData.userId,
+              tenantId: registrationData.tenantId
+            }
+          });
+
+          if (existingRecords && existingRecords.length > 0) {
+            const updateData: Partial<RegistrationTracker> = {
+              status: registrationData.status,
+              tenantRegnDate: registrationData.tenantRegnDate,
+              reason: registrationData.reason,
+            };
+
+            if (registrationData.platformRegnDate) {
+              updateData.platformRegnDate = registrationData.platformRegnDate;
+            }
+
+            await this.registrationTrackerRepo.update(
+              {
+                userId: registrationData.userId,
+                tenantId: registrationData.tenantId
+              },
+              updateData
+            );
+            return { action: 'updated', data: existingRecords };
+          } else {
+            throw new Error('Cannot create registration tracker without roleId. No existing records found to update.');
+          }
         }
       }
     } catch (error) {
