@@ -711,7 +711,6 @@ export class DatabaseService {
   }
 
   async upsertRegistrationTracker(registrationData: Partial<RegistrationTracker>) {
-    console.log(registrationData)
     try {
       if (registrationData.roleId) {
         const allUserRecords = await this.registrationTrackerRepo.find({
