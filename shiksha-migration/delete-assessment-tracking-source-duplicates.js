@@ -89,6 +89,11 @@ async function getAssessmentType(contentId) {
 
 // ── Per-record: Delete a single row by assessmentTrackingId ───────────────────
 async function deleteOne(client, trackingId) {
+  // 1. Delete from child table first
+  const sqlScore = `DELETE FROM public.assessment_tracking_score_detail WHERE "assessmentTrackingId" = $1`;
+  await client.query(sqlScore, [trackingId]);
+
+  // 2. Delete from parent table
   const sql = `DELETE FROM public.assessment_tracking WHERE "assessmentTrackingId" = $1`;
   const res = await client.query(sql, [trackingId]);
   return res.rowCount;
