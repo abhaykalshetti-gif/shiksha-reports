@@ -9,7 +9,7 @@ const LOGS_DIR = path.join(__dirname, 'logs');
 const API_TIMEOUT = 30000;
 
 // Full cookie string from the curl request
-const COOKIE =
+const COOKIE = ""
 const CONTENT_IDS = [
   'do_214352785717551104110',
   'do_2143464923090124801577',
