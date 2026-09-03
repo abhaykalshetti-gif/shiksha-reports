@@ -134,6 +134,14 @@ export class User {
   userPreferredLanguage?: string;
 
   @Column({
+    name: 'UserWhatProgramAreYouPartOf',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
+  userProgramAreYouPartOf?: string;
+
+  @Column({
     name: 'UserParentPhone',
     type: 'varchar',
     length: 20,

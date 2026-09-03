@@ -198,6 +198,7 @@ export class TransformService {
         psu: extractCustomField('PSU'),
         groupMembership: extractCustomField('EMP_GROUP'),
         program: extractCustomField('PROGRAM'),
+        userProgramAreYouPartOf: extractCustomField('WHAT PROGRAM ARE YOU PART OF')
       };
       return transformedData;
     } catch (error) {
