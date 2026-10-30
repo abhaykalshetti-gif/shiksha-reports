@@ -6,7 +6,7 @@ const dbConfig = {
     user: process.env.SOURCE_DB_USER,
     password: process.env.SOURCE_DB_PASSWORD,
     host: process.env.SOURCE_DB_HOST,
-    port: parseInt(process.env.SOURCE_DB_PORT || '5432'),
+    port: parseInt(process.env.SOURCE_DB_PORT),
     database: process.env.SOURCE_DB_NAME
   },
   destination: {

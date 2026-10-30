@@ -22,7 +22,7 @@ import { SurveyList } from 'src/entities/survey-list.entity';
 import { SurveyTracker } from 'src/entities/survey-tracker.entity';
 import { CohortAcademicYear } from 'src/entities/cohort-academic-year.entity';
 import { Tenant } from 'src/entities/tenant.entity';
-
+ 
 @Injectable()
 export class DatabaseService {
   constructor(
@@ -48,7 +48,7 @@ export class DatabaseService {
     private registrationTrackerRepo: Repository<RegistrationTracker>,
     @InjectRepository(Project)
     private projectRepo: Repository<Project>,
-    @InjectRepository(ProjectTask)
+    @InjectRepository(ProjectTask)  
     private projectTaskRepo: Repository<ProjectTask>,
     @InjectRepository(ProjectTaskTracking)
     private projectTaskTrackingRepo: Repository<ProjectTaskTracking>,
@@ -1367,13 +1367,13 @@ export class DatabaseService {
     surveyResponseStatusIndividual: string;
     updatedAt: Date;
   }) {
-    try {
+    try { 
       const updatePayload: Partial<SurveyTracker> = {
         context: data.context,
         contextId: data.contextId,
         surveyResponseStatusIndividual: data.surveyResponseStatusIndividual,
         updatedAt: data.updatedAt,
-      };
+     };
       if (data.surveySummary && Object.keys(data.surveySummary).length > 0) {
         updatePayload.surveySummary = data.surveySummary;
       }

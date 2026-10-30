@@ -314,7 +314,7 @@ export class ContentMetadataHandler {
       const candidates = [
         node?.editorState?.question,
         node?.editorState?.body,
-        node?.body,
+        node?.body, 
         node?.title,
         node?.metadata?.name,
         node?.name,

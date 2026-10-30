@@ -4,9 +4,9 @@ const dbConfig = require('./db');
 /**
  * Field ID for "UserInterestedToJoin" in the source FieldValues table.
  */
-const INTERESTED_TO_JOIN_FIELD_ID = 'f8dc1d5f-9b2b-412e-a22a-351bd8f14963';
+const INTERESTED_TO_JOIN_FIELD_ID = 'e6fc5315-61d6-4c7a-88bd-077b8716231b';
 
-const TENANT_ID = 'ef99949b-7f3a-4a5f-806a-e67e683e38f3';
+const TENANT_ID = 'fd8f3180-9988-495b-8a0d-ed201d7d28df';
 
 async function updateInterestedToJoin() {
     console.log('=== STARTING UserInterestedToJoin UPDATE ===');
@@ -70,7 +70,7 @@ async function updateInterestedToJoin() {
             // Bulk update using UNNEST to avoid N+1 query overhead
             const updateQuery = `
                 UPDATE public."Users" AS u
-                SET "UserInterestedToJoin" = vals.val
+                SET "C2CUserSubProgram" = vals.val
                 FROM (
                     SELECT unnest($1::uuid[]) AS user_id, unnest($2::varchar[]) AS val
                 ) AS vals

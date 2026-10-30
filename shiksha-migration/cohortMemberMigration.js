@@ -9,6 +9,7 @@ async function migrateCohortMembers() {
   const sourceClient = new Client(dbConfig.source);
   const destClient = new Client(dbConfig.destination);
 
+  console.log(dbConfig.destination)
   try {
     await sourceClient.connect();
     console.log('[COHORT MEMBERS] Connected to source database');
@@ -29,7 +30,6 @@ async function migrateCohortMembers() {
       FROM public."CohortMembers" cm
       LEFT JOIN public."CohortAcademicYear" cay
         ON cm."cohortAcademicYearId" = cay."cohortAcademicYearId"
-      WHERE cm."statusReason" is not null
     `;
 
     const res = await sourceClient.query(query);
@@ -49,6 +49,7 @@ async function migrateCohortMembers() {
 }
 
 async function updateCohortMember(destClient, row) {
+  console.log("Updating")
   try {
     const update = `
   UPDATE public."CohortMember"
